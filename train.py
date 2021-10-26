@@ -72,7 +72,7 @@ for epoch in range(epoch_count, opt.niter + opt.niter_decay + 1):
 
     t = time.time() - iter_start_time
     for key in stat_errors.keys():
-        if key is not 'count':
+        if not key == 'count':
             stat_errors[key] /= stat_errors['count']
     visualizer.print_current_errors(epoch, epoch_iter, stat_errors, t)
     if opt.display_id > 0:

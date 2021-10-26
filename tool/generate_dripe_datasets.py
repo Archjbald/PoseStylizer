@@ -14,6 +14,7 @@ DRIPE_IMGS = r'D:\Datasets\Autob_20k\set_pics'
 DRIPE_PATH = './dataset/dripe_data'
 IMG_DIR = f'{DRIPE_PATH}/images'
 
+CROP = False
 
 # Coco to CSV
 
@@ -25,7 +26,7 @@ def make_pairs(images):
 
     imgs_dict = {}
     for img in imgs_splt:
-        imgs_dict.setdefault(img[0], {}).setdefault(img[1], []).append(img[2])
+        imgs_dict.setdefault(img[0], {}).setdefault(img[1], []).append('_'.join(img[2:]))
 
     pairs = []
     for act in imgs_dict:
@@ -100,12 +101,13 @@ def coco_to_csv(coco_json, set_name):
             y,
             x,
         ))
-        img = resize_img(images[image_id], crop_ratio, annot['bbox'])
-        img.save(os.path.join(IMG_DIR, images[image_id]))
+        if CROP:
+            img = resize_img(images[image_id], crop_ratio, annot['bbox'])
+            img.save(os.path.join(IMG_DIR, images[image_id]))
 
     pairs = make_pairs(images)
 
-    with open(os.path.join(DRIPE_PATH, f'dripe-pair-{set_name}.csv'), 'w') as f:
+    with open(os.path.join(DRIPE_PATH, f'dripe-pairs-{set_name}.csv'), 'w') as f:
         f.write('from,to\n' + '\n'.join(','.join(p) for p in pairs))
     with open(os.path.join(DRIPE_PATH, f'dripe-annotation-{set_name}.csv'), 'w') as f:
         f.write('name:keypoints_y:keypoints_x\n' + '\n'.join(': '.join(str(a) for a in an) for an in csv_annots))
