@@ -8,7 +8,7 @@ from util import html
 import time
 
 opt = TestOptions().parse()
-opt.nThreads = 1   # test code only supports nThreads = 1
+opt.nThreads = 1  # test code only supports nThreads = 1
 opt.batchSize = 1  # test code only supports batchSize = 1
 opt.serial_batches = True  # no shuffle
 opt.no_flip = True  # no flip
@@ -22,13 +22,13 @@ web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.whic
 
 webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 
-print("testing samples: %d/%d" % (opt.how_many,len(dataset)))
+print("testing samples: %d/%d" % (opt.how_many, len(dataset)))
 
 model = model.eval()
 
 # test
 for i, data in enumerate(dataset):
-#     print(' process %d/%d img ..'%(i, opt.how_many))
+    #     print(' process %d/%d img ..'%(i, opt.how_many))
     if i >= opt.how_many:
         break
     model.set_input(data)
@@ -36,15 +36,11 @@ for i, data in enumerate(dataset):
     model.test()
     endTime = time.time()
     visuals = model.get_current_visuals()
-#     visuals = model.get_current_visuals_widerpose()
+    #     visuals = model.get_current_visuals_widerpose()
     img_path = model.get_image_paths()
     img_path = [img_path]
     visualizer.save_images(webpage, visuals, img_path)
-    if not i%100:
+    if not i % 100:
         print(i)
 
 webpage.save()
-
-
-
-
