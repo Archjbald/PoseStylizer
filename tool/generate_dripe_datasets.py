@@ -16,6 +16,7 @@ IMG_DIR = f'{DRIPE_PATH}/images'
 
 CROP = False
 
+
 # Coco to CSV
 
 def make_pairs(images):
@@ -48,26 +49,83 @@ def make_pairs(images):
     return pairs
 
 
-def resize_img(img_path, crop_ratio, bbox):
-    img = Image.open(os.path.join(DRIPE_IMGS, img_path))
-    img_croped = img.crop((bbox[0], bbox[1], bbox[0] + bbox[2], bbox[1] + bbox[3]))
+def resize_img(img, crop_ratio, crop):
+    img_croped = img.crop(crop)
     img_resized = img_croped.resize((round(img_croped.width * crop_ratio), round(img_croped.height * crop_ratio)))
 
     return img_resized
 
 
-def convert_annot(annot):
-    kps = annot['keypoints']
-    bbox = annot['bbox']  # [x,y,width,height]
+def crop_img(img, crop_ratio, crop):
+    img_resized = img.resize((round(img.width * crop_ratio), round(img.height * crop_ratio)))
+    img_croped = img_resized.crop((
+        int(crop_ratio * crop[0]),
+        int(crop_ratio * crop[1]),
+        int(crop_ratio * crop[0]) + 256,
+        int(crop_ratio * crop[1]) + 192,
+    ))
+    return img_croped
 
-    crop_ratio = 256. / max(bbox[2], bbox[3])
+
+def compute_crop(bbox, img_size):
+    crop_size = (256., 192.)
+    ratio_x = crop_size[0] / bbox[2]
+    ratio_y = crop_size[1] / bbox[3]
+
+    if ratio_x < ratio_y:
+        if crop_size[1] / ratio_x > img_size[1]:
+            crop_ratio = ratio_y
+        else:
+            crop_ratio = ratio_x
+    else:
+        if crop_size[0] / ratio_y > img_size[0]:
+            crop_ratio = ratio_x
+        else:
+            crop_ratio = ratio_y
+
+    crop_w = min(round(crop_size[0] / crop_ratio), img_size[0])
+    crop_h = min(round(crop_size[1] / crop_ratio), img_size[1])
+
+    assert round(crop_w * crop_ratio) == crop_size[0]
+    assert round(crop_h * crop_ratio) == crop_size[1]
+
+    bbox_center = (bbox[0] + bbox[2] // 2, bbox[1] + bbox[3] // 2)
+    crop = [
+        bbox_center[0] - crop_w // 2,
+        bbox_center[1] - crop_h // 2,
+        -1,
+        -1,
+    ]
+    crop[2] = crop[0] + crop_w
+    crop[3] = crop[1] + crop_h
+
+    assert crop[2] - crop[0] <= img_size[0] and crop[3] - crop[1] <= img_size[1]
+
+    if crop[0] < 0:
+        crop[2] = crop_w
+        crop[0] = 0
+    elif crop[2] >= img_size[0]:
+        crop[0] = img_size[0] - crop_w
+        crop[2] = img_size[0]
+    elif crop[1] < 0:
+        crop[3] = crop_h
+        crop[1] = 0
+    elif crop[3] >= img_size[1]:
+        crop[1] = img_size[1] - crop_h
+        crop[3] = img_size[1]
+
+    return crop_ratio, crop
+
+
+def convert_annot(annot, crop_ratio, crop_x, crop_y):
+    kps = annot['keypoints']
 
     x_coco = []
     y_coco = []
     for i in range(17):
         vis = kps[3 * i + 2] > 0
-        x_coco.append(int(kps[3 * i] * crop_ratio) if vis else MISSING_VALUE)
-        y_coco.append(int(kps[3 * i + 1] * crop_ratio) if vis else MISSING_VALUE)
+        x_coco.append(int((kps[3 * i] - crop_x) * crop_ratio) if vis else MISSING_VALUE)
+        y_coco.append(int((kps[3 * i + 1] - crop_y) * crop_ratio) if vis else MISSING_VALUE)
 
     # csv_in_coco[kp in csv] = kp in coco
     csv_in_coco = [0, 0, 6, 8, 10, 5, 7, 9, 12, 14, 16, 11, 13, 15, 2, 1, 4, 3]
@@ -78,7 +136,7 @@ def convert_annot(annot):
         x[1] = round((x[2] + x[5]) / 2.)
         y[1] = round((y[2] + y[5]) / 2.)
 
-    return annot['image_id'], x, y, crop_ratio
+    return x, y
 
 
 def coco_to_csv(coco_json, set_name):
@@ -91,18 +149,22 @@ def coco_to_csv(coco_json, set_name):
     for i, annot in enumerate(coco_annots):
         print('processing %d / %d ...' % (i, len(coco_annots)))
 
+        image_id = annot['image_id']
         # filter out non-head images
         if annot['keypoints'][3 * 4 + 1] < 60:
             del images[annot['image_id']]
             continue
-        image_id, x, y, crop_ratio = convert_annot(annot)
+
+        img = Image.open(os.path.join(DRIPE_IMGS, images[image_id]))
+        crop_ratio, crop_box = compute_crop(annot['bbox'], img.size)
+        x, y = convert_annot(annot, crop_ratio, crop_box[0], crop_box[1])
         csv_annots.append((
             images[image_id],
             y,
             x,
         ))
         if CROP:
-            img = resize_img(images[image_id], crop_ratio, annot['bbox'])
+            img = crop_img(img, crop_ratio, crop_box)
             img.save(os.path.join(IMG_DIR, images[image_id]))
 
     pairs = make_pairs(images)
@@ -141,7 +203,7 @@ def compute_pose(annotations_file, savePath):
         file_name = os.path.join(savePath, name + '.npy')
         kp_array = load_pose_cords_from_strings(row.keypoints_y, row.keypoints_x)
         img = Image.open(img_path)
-        pose = cords_to_map(kp_array, img.size)
+        pose = cords_to_map(kp_array, img.size[::-1], sigma=12)
         np.save(file_name, pose)
 
 

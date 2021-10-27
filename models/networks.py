@@ -46,7 +46,7 @@ def weights_init_kaiming(m):
 
 def weights_init_orthogonal(m):
     classname = m.__class__.__name__
-#     print(classname)
+    #     print(classname)
     if classname.find('Conv') != -1:
         init.orthogonal(m.weight.data, gain=1)
     elif classname.find('Linear') != -1:
@@ -108,17 +108,15 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
 
     if use_gpu:
         assert (torch.cuda.is_available())
-        
 
     if which_model_netG in ['APS']:
         from models.APS import stylegenerator
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
-        
-        
+
     netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
-                                           n_blocks=9, gpu_ids=gpu_ids, n_downsampling=n_downsampling, opt = opt)
-        
+                          n_blocks=9, gpu_ids=gpu_ids, n_downsampling=n_downsampling, opt=opt)
+
     netG.cuda()
     if len(gpu_ids) > 1:
         netG = nn.DataParallel(netG, device_ids=gpu_ids)
@@ -143,12 +141,12 @@ def define_D(input_nc, ndf, which_model_netD,
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
-        
+
     netD.cuda()
     if len(gpu_ids) > 1:
         netD = nn.DataParallel(netD, device_ids=gpu_ids)
-#     if use_gpu:
-#         netD.cuda(gpu_ids[0])
+    #     if use_gpu:
+    #         netD.cuda(gpu_ids[0])
 
     return netD
 
@@ -205,6 +203,7 @@ class GANLoss(nn.Module):
         target_tensor = self.get_target_tensor(input, target_is_real)
         return self.loss(input, target_tensor)
 
+
 # Define a resnet block
 class ResnetBlock(nn.Module):
     def __init__(self, dim, padding_type, norm_layer, use_dropout, use_bias):
@@ -246,6 +245,7 @@ class ResnetBlock(nn.Module):
     def forward(self, x):
         out = x + self.conv_block(x)
         return out
+
 
 class ResnetDiscriminator(nn.Module):
     def __init__(self, input_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6, gpu_ids=[],
@@ -307,7 +307,6 @@ class ResnetDiscriminator(nn.Module):
     def forward(self, input, mask=None):
         y = self.model(input)
         if mask is not None:
-            mask = F.interpolate(mask, size=(y.shape[2],y.shape[3]))
+            mask = F.interpolate(mask, size=(y.shape[2], y.shape[3]), align_corners=False)
             y = y * mask
         return y
-
