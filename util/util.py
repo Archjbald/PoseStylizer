@@ -20,26 +20,26 @@ def tensor2im(image_tensor, imtype=np.uint8, index=0):
 
 
 # draw pose img
-LIMB_SEQ = [[1,2], [1,5], [2,3], [3,4], [5,6], [6,7], [1,8], [8,9],
-           [9,10], [1,11], [11,12], [12,13], [1,0], [0,14], [14,16],
-           [0,15], [15,17], [2,16], [5,17]]
+LIMB_SEQ = [[1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [1, 8], [8, 9],
+            [9, 10], [1, 11], [11, 12], [12, 13], [1, 0], [0, 14], [14, 16],
+            [0, 15], [15, 17], [2, 16], [5, 17]]
 
 COLORS = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0], [0, 255, 0],
           [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255],
           [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85]]
 
-
 LABELS = ['nose', 'neck', 'Rsho', 'Relb', 'Rwri', 'Lsho', 'Lelb', 'Lwri',
-               'Rhip', 'Rkne', 'Rank', 'Lhip', 'Lkne', 'Lank', 'Leye', 'Reye', 'Lear', 'Rear']
+          'Rhip', 'Rkne', 'Rank', 'Lhip', 'Lkne', 'Lank', 'Leye', 'Reye', 'Lear', 'Rear']
 
 MISSING_VALUE = -1
+
 
 def map_to_cord(pose_map, threshold=0.1):
     all_peaks = [[] for i in range(18)]
     pose_map = pose_map[..., :18]
 
-    y, x, z = np.where(np.logical_and(pose_map == pose_map.max(axis = (0, 1)),
-                                     pose_map > threshold))
+    y, x, z = np.where(np.logical_and(pose_map == pose_map.max(axis=(0, 1)),
+                                      pose_map > threshold))
     for x_i, y_i, z_i in zip(x, y, z):
         all_peaks[z_i].append([x_i, y_i])
 
@@ -56,6 +56,7 @@ def map_to_cord(pose_map, threshold=0.1):
 
     return np.concatenate([np.expand_dims(y_values, -1), np.expand_dims(x_values, -1)], axis=1)
 
+
 def draw_pose_from_map(pose_map, threshold=0.1, index=0, **kwargs):
     # CHW -> HCW -> HWC
     pose_map = pose_map[index].cpu().transpose(1, 0).transpose(2, 1).numpy()
@@ -63,26 +64,27 @@ def draw_pose_from_map(pose_map, threshold=0.1, index=0, **kwargs):
     cords = map_to_cord(pose_map, threshold=threshold)
     return draw_pose_from_cords(cords, pose_map.shape[:2], **kwargs)
 
+
 def draw_pose_from_map_wider(pose_map, threshold=0.1, ratio=0.225, **kwargs):
     # CHW -> HCW -> HWC
     pose_map = pose_map[0].cpu().transpose(1, 0).transpose(2, 1).numpy()
 
     cords = map_to_cord(pose_map, threshold=threshold)
     for i in range(len(cords)):
-        tmp = cords[i][0]*ratio
-        if tmp<0:
+        tmp = cords[i][0] * ratio
+        if tmp < 0:
             tmp = -1
         cords[i][0] = round(tmp)
-        tmp = cords[i][1]*ratio
-        if tmp<0:
+        tmp = cords[i][1] * ratio
+        if tmp < 0:
             tmp = -1
         cords[i][1] = round(tmp)
-    return draw_pose_from_cords(cords, (round(pose_map.shape[0]*ratio),round(pose_map.shape[1]*ratio)), **kwargs)
+    return draw_pose_from_cords(cords, (round(pose_map.shape[0] * ratio), round(pose_map.shape[1] * ratio)), **kwargs)
 
 
 # draw pose from map
 def draw_pose_from_cords(pose_joints, img_size, radius=2, draw_joints=True):
-    colors = np.zeros(shape=img_size + (3, ), dtype=np.uint8)
+    colors = np.zeros(shape=img_size + (3,), dtype=np.uint8)
     mask = np.zeros(shape=img_size, dtype=bool)
 
     if draw_joints:
@@ -105,7 +107,6 @@ def draw_pose_from_cords(pose_joints, img_size, radius=2, draw_joints=True):
     return colors, mask
 
 
-
 def diagnose_network(net, name='network'):
     mean = 0.0
     count = 0
@@ -123,21 +124,24 @@ def save_image(image_numpy, image_path):
     image_pil = Image.fromarray(image_numpy)
     image_pil.save(image_path)
 
+
 def info(object, spacing=10, collapse=1):
     """Print methods and doc strings.
     Takes module, class, list, dictionary, or string."""
     methodList = [e for e in dir(object) if isinstance(getattr(object, e), collections.Callable)]
     processFunc = collapse and (lambda s: " ".join(s.split())) or (lambda s: s)
-    print( "\n".join(["%s %s" %
+    print("\n".join(["%s %s" %
                      (method.ljust(spacing),
                       processFunc(str(getattr(object, method).__doc__)))
-                     for method in methodList]) )
+                     for method in methodList]))
+
 
 def varname(p):
     for line in inspect.getframeinfo(inspect.currentframe().f_back)[3]:
         m = re.search(r'\bvarname\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)', line)
         if m:
             return m.group(1)
+
 
 def print_numpy(x, val=True, shp=False):
     x = x.astype(np.float64)
@@ -160,3 +164,4 @@ def mkdirs(paths):
 def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
+

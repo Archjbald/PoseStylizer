@@ -1,10 +1,13 @@
 venv/
-dataset/
+
 __pycache__/
 .idea/
 logs/
 results/
 checkpoint/
+
+dataset/*
+!dataset/test_data
 
 *.pth
 *.pyc
