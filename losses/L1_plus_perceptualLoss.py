@@ -25,7 +25,6 @@ class L1_plus_perceptualLoss(nn.Module):
                 break
         self.vgg_submodel = torch.nn.DataParallel(self.vgg_submodel, device_ids=gpu_ids).cuda()
 
-
     def forward(self, inputs, targets, mask=None):
         if self.lambda_L1 == 0 and self.lambda_perceptual == 0:
             return torch.zeros(1).cuda(), torch.zeros(1), torch.zeros(1)
