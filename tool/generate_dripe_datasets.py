@@ -174,6 +174,7 @@ def coco_to_csv(coco_json, set_name):
     with open(os.path.join(DRIPE_PATH, f'dripe-annotation-{set_name}.csv'), 'w') as f:
         f.write('name:keypoints_y:keypoints_x\n' + '\n'.join(': '.join(str(a) for a in an) for an in csv_annots))
 
+ 
 
 def load_pose_cords_from_strings(y_str, x_str):
     y_cords = json.loads(y_str)
