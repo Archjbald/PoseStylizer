@@ -84,7 +84,7 @@ class BaseOptions():
         # Path
         if not self.opt.pairLst:
             self.opt.pairLst = os.path.join(self.opt.dataroot,
-                                            f'{self.opt.dataset}-pairs-{"train" if self.opt.isTrain else "test"}')
+                                            f'{self.opt.dataset}-pairs-{"train" if self.opt.isTrain else "test"}.csv')
 
         # save to the disk
         expr_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)
