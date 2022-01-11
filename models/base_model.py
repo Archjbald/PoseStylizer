@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 import pickle
+from collections import OrderedDict
+
 
 class BaseModel(nn.Module):
 
@@ -51,9 +53,9 @@ class BaseModel(nn.Module):
         save_path = os.path.join(self.save_dir, save_filename)
         save_infoname = os.path.join(self.save_dir, save_infoname)
         torch.save(network.cpu().state_dict(), save_path)
-        network.cuda()        
-        
-        info = {'epoch':epoch, 'total_steps':total_steps}
+        network.cuda()
+
+        info = {'epoch': epoch, 'total_steps': total_steps}
         filehandler = open(save_infoname, "wb")
         pickle.dump(info, filehandler)
         filehandler.close()
@@ -63,11 +65,13 @@ class BaseModel(nn.Module):
         save_filename = '%s_%s.pth' % (epoch_label, network_label)
         save_path = os.path.join(self.save_dir, save_filename)
         if os.path.exists(save_path):
-            network.load_state_dict(torch.load(save_path))
+            checkpoint = torch.load(save_path)
+            checkpoint = OrderedDict([(k.replace('module.', ''), v) for k, v in checkpoint.items()])
+            network.load_state_dict(checkpoint)
             print("Found checkpoints. Network loaded.")
         else:
             print("Not found checkpoints. Network from scratch.")
-            
+
     # update learning rate (called once every epoch)
     def update_learning_rate(self):
         for scheduler in self.schedulers:

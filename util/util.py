@@ -165,3 +165,12 @@ def mkdir(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
+
+def avg_dic(old_dic, new_dic, n_iter):
+    if n_iter < 1:
+        return new_dic
+    for k, v in enumerate(old_dic):
+        if k in new_dic:
+            new_dic[k] = (v * (n_iter - 1) + new_dic[k]) / n_iter
+
+    return new_dic
