@@ -1,6 +1,6 @@
 import os.path
 import torchvision.transforms as transforms
-from data.base_dataset import BaseDataset, get_transform
+from data.base_dataset import BaseDataset, get_transform, get_random_trans
 from data.image_folder import make_dataset
 from PIL import Image
 import PIL
@@ -8,6 +8,7 @@ import random
 import pandas as pd
 import numpy as np
 import torch
+import torchvision.transforms as transforms
 
 
 class KeyDataset(BaseDataset):
@@ -32,10 +33,19 @@ class KeyDataset(BaseDataset):
         print('Loading data pairs finished ...')
 
     def __getitem__(self, index):
+        self.opt.random = True
         if self.opt.phase == 'train' or self.opt.random:
             index = random.randint(0, self.size - 1)
 
         P1_name, P2_name = self.pairs[index]
+
+        # while 'Transpolis' not in P1_name and 'Laure' not in P1_name and 'Chama' not in P1_name:
+        while 'Transpolis' in P1_name or 'Laure' in P1_name or 'Chama' in P1_name:
+            if self.opt.phase == 'train' or self.opt.random:
+                index = random.randint(0, self.size - 1)
+
+            P1_name, P2_name = self.pairs[index]
+
         P1_path = os.path.join(self.dir_P, P1_name)  # person 1
         BP1_path = os.path.join(self.dir_K, P1_name + '.npy')  # bone of person 1
 
@@ -48,10 +58,20 @@ class KeyDataset(BaseDataset):
 
         BP1_img = np.load(BP1_path)  # h, w, c
         BP2_img = np.load(BP2_path)
+
+        # P1_img = Image.new('RGB', P1_img.size)
+        # P2_img = Image.new('RGB', P2_img.size)
+        # BP2_img = np.empty_like(BP2_img)
         # use flip
         if self.opt.phase == 'train' and not self.opt.no_flip:
             # print ('use_flip ...')
             flip_random = random.uniform(0, 1)
+            rs_random = random.uniform(0, 1)
+            if rs_random > 0.6:
+                rs_transform = get_random_trans(P1_img.size[:2])
+
+                P1_img = rs_transform(P1_img)
+                P2_img = rs_transform(P2_img)
 
             if flip_random > 0.5:
                 # print('fliped ...')
