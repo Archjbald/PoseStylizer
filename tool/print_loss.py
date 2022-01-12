@@ -1,12 +1,21 @@
 import matplotlib.pyplot as plt
 
 
+weights = {
+    'pair_L1loss': 1,
+    'D_PP': 1,
+    'D_PB': 1,
+    'pair_GANloss': 1,
+    'origin_L1': 1,
+    'perceptual': 1,
+}
+
 def print_loss(log_path, mode='train'):
     with open(log_path) as f_log:
         loss_logs = f_log.read().split('\n')
 
     loss_logs = [l.split() for l in loss_logs if "===" not in l and
-                 (('Val' not in l and not mode == 'val') or ('Val' in l and mode == 'val'))]
+                 (('Val' not in l and not mode == 'val'and 'count' in l) or ('Val' in l and mode == 'val'))]
 
     losses = {}
     lbls = []
@@ -19,7 +28,7 @@ def print_loss(log_path, mode='train'):
             continue
         loss = []
         lbl = []
-        for k in iter[6 + (1 if mode == 'val' else 0):]:
+        for k in iter[7 if mode == 'val' else 8:]:
             if ':' in k:
                 lbl.append(k[:-1])
             else:
@@ -36,10 +45,10 @@ def print_loss(log_path, mode='train'):
 
     fig, ax = plt.subplots()
     for i, lbl in enumerate(lbls):
-        if lbl in ['pair_L1loss', 'origin_L1', 'perceptual']:
-            # if lbl in ['pair_L1loss', 'D_PP', 'D_PB', 'pair_GANloss']:
-            continue
-        ax.plot(epochs, [losses[e][i] for e in epochs], label=lbl)
+        # if lbl in ['pair_L1loss', 'origin_L1', 'perceptual']:
+        # if lbl in ['pair_L1loss', 'D_PP', 'D_PB', 'pair_GANloss']:
+        #    continue
+        ax.plot(epochs, [losses[e][i] * weights.setdefault(lbl, 1) for e in epochs], label=lbl)
 
     ax.legend()
     plt.show()
@@ -47,5 +56,5 @@ def print_loss(log_path, mode='train'):
     return
 
 
-LOG_PATH = 'logs/draiver_market/loss_log.txt'
+LOG_PATH = 'logs/draiver/loss_log.txt'
 print_loss(LOG_PATH, mode='val')

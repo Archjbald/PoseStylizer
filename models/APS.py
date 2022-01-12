@@ -106,8 +106,10 @@ class UpBlock(nn.Module):
 
 
 class DownBlock(nn.Module):
-    def __init__(self, dim_fg, padding_type, norm_layer, use_bias, cated_stream=1):
+    def __init__(self, dim_fg, padding_type, norm_layer, use_bias, use_dropout, cated_stream=1):
         super(DownBlock, self).__init__()
+        self.use_dropout = use_dropout
+        self.dropout = nn.Dropout(0.2)
         self.conv_block_down_stream1, self.conv_block_stream1 = self.build_conv_block(dim_fg, padding_type, norm_layer,
                                                                                       use_bias, cal_att=False,
                                                                                       cated_stream=1)
@@ -152,6 +154,9 @@ class DownBlock(nn.Module):
         x1_out = x1_out * att
         x1_out = x1_out + x1  # residual connection
 
+        if self.use_dropout:
+            x1_out = self.dropout(x1_out)
+            x2_out = self.dropout(x2_out)
         return x1_out, x2_out
 
 
@@ -166,6 +171,7 @@ class Model(nn.Module):
         self.ngf_fg = ngf
         self.ngf_bg = ngf // 4
         self.gpu_ids = gpu_ids
+        self.use_dropout = use_dropout
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -191,7 +197,8 @@ class Model(nn.Module):
             mult = 2 ** i
             dim = min(self.ngf_fg * mult, 512)
             down_blocks.append(
-                DownBlock(dim, padding_type=padding_type, norm_layer=norm_layer, use_bias=use_bias, cated_stream=1))
+                DownBlock(dim, padding_type=padding_type, norm_layer=norm_layer, use_bias=use_bias,
+                          use_dropout=self.use_dropout, cated_stream=1))
 
         # feats to vector
         mult = mult * 2
@@ -220,7 +227,7 @@ class Model(nn.Module):
                                         bpt_channels=self.input_nc_s3,
                                         norm_layer=norm_layer,
                                         dlatent_size=self.dlatent_dim_fg,
-                                        use_dropout=opt.dataset == 'market',
+                                        use_dropout=self.use_dropout,
                                         padding=padding,
                                         dataset=opt.dataset,
                                         cut=cut,
