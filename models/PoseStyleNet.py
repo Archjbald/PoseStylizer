@@ -51,12 +51,13 @@ class TransferModel(BaseModel):
                                                  n_downsampling=opt.D_n_downsampling)
 
         which_epoch = opt.which_epoch
-        self.load_network(self.netG, 'netG', which_epoch)
-        if self.isTrain:
-            if opt.with_D_PB:
-                self.load_network(self.netD_PB, 'netD_PB', which_epoch)
-            if opt.with_D_PP:
-                self.load_network(self.netD_PP, 'netD_PP', which_epoch)
+        if opt.continue_train or not self.isTrain:
+            self.load_network(self.netG, 'netG', which_epoch)
+            if self.isTrain:
+                if opt.with_D_PB:
+                    self.load_network(self.netD_PB, 'netD_PB', which_epoch)
+                if opt.with_D_PP:
+                    self.load_network(self.netD_PP, 'netD_PP', which_epoch)
 
         if self.isTrain:
             self.old_lr = opt.lr
