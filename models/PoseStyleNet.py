@@ -133,7 +133,10 @@ class TransferModel(BaseModel):
 
         # L1 loss
         if self.opt.L1_type == 'l1_plus_perL1':
-            losses = self.criterionL1(self.fake_p2, self.input_P2)
+            if self.opt.shuffle:
+                losses = self.criterionL1(self.fake_p2, self.input_P1)
+            else:
+                losses = self.criterionL1(self.fake_p2, self.input_P2)
             self.loss_G_L1 = losses[0]
             self.loss_originL1 = losses[1].item()
             self.loss_perceptual = losses[2].item()

@@ -42,6 +42,7 @@ def set_test_opt(opt, max_dataset_size=None):
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
     opt.phase = 'test'
+    opt.isTrain = False
     opt.pairLst = opt.pairLst.replace('train', 'test')
     if max_dataset_size:
         opt.max_dataset_size = max_dataset_size

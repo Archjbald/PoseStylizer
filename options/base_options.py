@@ -28,6 +28,8 @@ class BaseOptions():
                                  help='name of the experiment. It decides where to store samples and models')
         self.parser.add_argument('--dataset_mode', type=str, default='', help='chooses how datasets are loaded')
         self.parser.add_argument('--random', action='store_true', help='if true, randomly shuffle input images')
+        self.parser.add_argument('--shuffle', action='store_true', help='if true, shuffle actors for training')
+
         self.parser.add_argument('--model', type=str, default='',
                                  help='chooses which model to use')
         self.parser.add_argument('--nThreads', default=2, type=int, help='# threads for loading data')
