@@ -65,9 +65,20 @@ class BaseModel(nn.Module):
         save_filename = '%s_%s.pth' % (epoch_label, network_label)
         save_path = os.path.join(self.save_dir, save_filename)
         if os.path.exists(save_path):
+            named_params = [n for n, _ in network.named_parameters()]
             checkpoint = torch.load(save_path)
-            checkpoint = OrderedDict([(k.replace('module.', ''), v) for k, v in checkpoint.items()])
-            network.load_state_dict(checkpoint)
+            checkpoint = OrderedDict(
+                [(k.replace('module.', '') if k.replace('module.', '') in named_params else k, v) for k, v in
+                 checkpoint.items()])
+            try:
+                network.load_state_dict(checkpoint)
+            except RuntimeError as err:
+                msg = str(err).split('\n')
+                missing = msg[1].split(': ')[1].split(', ')
+                unexpect = msg[2].split(': ')[1].split(', ')
+
+                raise err
+
             print("Found checkpoints. Network loaded.")
         else:
             print("Not found checkpoints. Network from scratch.")
