@@ -56,5 +56,5 @@ def print_loss(log_path, mode='train'):
     return
 
 
-LOG_PATH = 'logs/draiver/loss_log.txt'
-print_loss(LOG_PATH, mode='val')
+LOG_PATH = 'logs/draiver_med/loss_log.txt'
+print_loss(LOG_PATH, mode='train')

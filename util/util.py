@@ -9,6 +9,7 @@ import collections
 
 from skimage.draw import disk, line_aa, polygon
 
+
 # Converts a Tensor into a Numpy array
 # |imtype|: the desired type of the converted numpy array
 def tensor2im(image_tensor, imtype=np.uint8, index=0):

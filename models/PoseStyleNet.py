@@ -51,7 +51,7 @@ class TransferModel(BaseModel):
                                                  n_downsampling=opt.D_n_downsampling)
 
         which_epoch = opt.which_epoch
-        if opt.continue_train or not self.isTrain:
+        if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'netG', which_epoch)
             if self.isTrain:
                 if opt.with_D_PB:
