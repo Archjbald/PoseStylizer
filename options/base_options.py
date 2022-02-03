@@ -67,6 +67,30 @@ class BaseOptions():
                                  help='down-sampling blocks for discriminator')
 
         self.initialized = True
+        # CUT options
+        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut'],
+                                 help='choose between classic APS or CUT backward method for generator')
+        self.parser.add_argument('--CUT_mode', type=str, default="CUT", choices='(CUT, cut, FastCUT, fastcut)')
+
+        self.parser.add_argument('--init_gain', type=float, default=0.02,
+                                 help='scaling factor for normal, xavier and orthogonal.')
+        self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
+
+        self.parser.add_argument('--nce_idt', action='store_true',
+                                 help='use NCE loss for identity mapping: NCE(G(Y), Y))')
+        self.parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16',
+                                 help='compute NCE loss on which layers')
+        self.parser.add_argument('--nce_includes_all_negatives_from_minibatch', action='store_true',
+                                 help='(used for single image translation) If True, include the negatives from the other samples of the minibatch when computing the contrastive loss. Please see models/patchnce.py for more details.')
+        self.parser.add_argument('--netF', type=str, default='mlp_sample', choices=['sample', 'reshape', 'mlp_sample'],
+                                 help='how to downsample the feature map')
+        self.parser.add_argument('--netF_nc', type=int, default=256)
+        self.parser.add_argument('--nce_T', type=float, default=0.07, help='temperature for NCE loss')
+        self.parser.add_argument('--num_patches', type=int, default=256, help='number of patches per layer')
+        self.parser.add_argument('--flip_equivariance', action='store_true',
+                                 help="Enforce flip-equivariance as additional regularization. It's used by FastCUT, but not CUT")
+
+        self.parser.set_defaults(pool_size=0)
 
     def parse(self):
         if not self.initialized:
@@ -82,6 +106,17 @@ class BaseOptions():
                 self.opt.gpu_ids.append(id)
 
         args = vars(self.opt)
+
+        # Set default parameters for CUT and FastCUT
+        if self.opt.CUT_mode.lower() == "cut":
+            self.parser.set_defaults(nce_idt=True, lambda_NCE=1.0)
+        elif self.opt.CUT_mode.lower() == "fastcut":
+            self.parser.set_defaults(
+                nce_idt=False, lambda_NCE=10.0, flip_equivariance=True,
+                n_epochs=150, n_epochs_decay=50
+            )
+        else:
+            raise ValueError(self.opt.CUT_mode)
 
         # Path
         if not self.opt.pairLst:

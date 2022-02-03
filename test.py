@@ -21,6 +21,10 @@ def test(opt, model, dataset):
         #     print(' process %d/%d img ..'%(i, opt.how_many))
         if i >= opt.how_many:
             break
+
+        if opt.backward == 'cut' and i == 0:
+            model.data_dependent_initialize(data)
+
         model.set_input(data)
         startTime = time.time()
         model.test()

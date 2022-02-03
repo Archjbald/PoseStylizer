@@ -1,29 +1,38 @@
 import numpy as np
 import torch
-import os
 from collections import OrderedDict
 
-import util.util as util
-from util.image_pool import ImagePool
 from .base_model import BaseModel
+from util.image_pool import ImagePool
 from . import networks
-# losses
-from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss
+import util.util as util
+
+from losses.patchnce import PatchNCELoss
 
 
-class TransferModel(BaseModel):
+class TransferCUTModel(BaseModel):
+    """
+    The code borrows heavily from the PyTorch implementation of CycleGAN
+    https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
+    """
+
     def name(self):
-        return 'TransferModel'
+        return 'TransferCUTModel'
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
         self.opt = opt
 
+        self.nce_nb_layers = opt.G_n_downsampling + 2
+
+        # define networks (both generator and discriminator)
         input_nc = [opt.P_input_nc, opt.BP_input_nc, opt.BP_input_nc]
 
         self.netG = networks.define_G(input_nc, opt.P_input_nc,
                                       opt.ngf, opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type,
                                       self.gpu_ids, n_downsampling=opt.G_n_downsampling, opt=opt)
+
+        self.netF = networks.define_F(opt.netF, opt.init_type, opt.init_gain, self.gpu_ids, opt)
 
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
@@ -57,19 +66,18 @@ class TransferModel(BaseModel):
             # define loss functions
             self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
 
-            if opt.L1_type == 'origin':
-                self.criterionL1 = torch.nn.L1Loss()
-            elif opt.L1_type == 'l1_plus_perL1':
-                self.criterionL1 = L1_plus_perceptualLoss(opt.lambda_A, opt.lambda_B, opt.perceptual_layers,
-                                                          self.gpu_ids, opt.percep_is_l1)
-            else:
-                raise Exception('Unsurportted type of L1!')
+            self.criterionNCE = []
+            for _ in range(self.nce_nb_layers):
+                self.criterionNCE.append(PatchNCELoss(opt))
+
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             if opt.with_D_PB:
-                self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+                self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr,
+                                                       betas=(opt.beta1, 0.999))
             if opt.with_D_PP:
-                self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+                self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr,
+                                                       betas=(opt.beta1, 0.999))
 
             self.optimizers = []
             self.schedulers = []
@@ -81,7 +89,7 @@ class TransferModel(BaseModel):
             for optimizer in self.optimizers:
                 self.schedulers.append(networks.get_scheduler(optimizer, opt))
 
-        print('---------- Networks initialized -------------')
+            print('---------- Networks initialized -------------')
 
     def set_input(self, input):
         self.input_P1, self.input_BP1 = input['P1'], input['BP1']
@@ -99,62 +107,46 @@ class TransferModel(BaseModel):
                 self.input_MP1 = self.input_MP1.cuda()
                 self.input_MP2 = self.input_MP2.cuda()
 
+    def data_dependent_initialize(self, data):
+        """
+        The feature network netF is defined in terms of the shape of the intermediate, extracted
+        features of the encoder portion of netG. Because of this, the weights of netF are
+        initialized at the first feedforward pass with some input images.
+        Please also see PatchSampleF.create_mlp(), which is called at the first forward() call.
+        """
+        bs_per_gpu = data["P1"].size(0) // max(len(self.opt.gpu_ids), 1)
+        self.set_input(data)
+        self.input_P1 = self.input_P1[:bs_per_gpu]
+        self.input_P2 = self.input_P2[:bs_per_gpu]
+        self.forward()  # compute fake images: G(A)
+        if self.opt.isTrain:
+            if self.opt.with_D_PP:  # calculate gradients for D
+                self.backward_D_PP()
+            if self.opt.with_D_PP:
+                self.backward_D_PB()
+            self.backward_G()
+            if self.opt.lambda_NCE > 0.0:
+                self.optimizer_F = torch.optim.Adam(self.netF.parameters(), lr=self.opt.lr,
+                                                    betas=(self.opt.beta1, self.opt.beta2))
+                self.optimizers.append(self.optimizer_F)
+
     def forward(self):
-        G_input = [self.input_P1, self.input_BP1, self.input_BP2]
+        """Run forward pass; called by both functions <optimize_parameters> and <test>."""
+        input_P1 = (torch.cat((self.input_P1, self.input_P2), dim=0)
+                    if self.opt.nce_idt and self.opt.isTrain else self.input_P1)
+
+        G_input = [input_P1, self.input_BP1, self.input_BP2]
         if self.opt.dataset_mode == 'keypoint_segmentation':
             G_input.append(self.input_MP1)
-        self.fake_p2 = self.netG(G_input)
+        output = self.netG(G_input)
+
+        self.fake_P2 = output[:self.input_P1.size(0)]
+        if self.opt.nce_idt:
+            self.idt_P2 = output[self.input_P1.size(0):]
 
     def test(self):
         with torch.no_grad():
             self.forward()
-
-    # get image paths
-    def get_image_paths(self):
-        return self.image_paths
-
-    def backward_G(self, backward=True):
-        if self.opt.with_D_PB:
-            pred_fake_PB = self.netD_PB(torch.cat((self.fake_p2, self.input_BP2), 1))
-            self.loss_G_GAN_PB = self.criterionGAN(pred_fake_PB, True)
-
-        if self.opt.with_D_PP:
-            pred_fake_PP = self.netD_PP(torch.cat((self.fake_p2, self.input_P1), 1))
-            self.loss_G_GAN_PP = self.criterionGAN(pred_fake_PP, True)
-
-        # L1 loss
-        if self.opt.L1_type == 'l1_plus_perL1':
-            if self.opt.shuffle:
-                losses = self.criterionL1(self.fake_p2, self.input_P1)
-            else:
-                losses = self.criterionL1(self.fake_p2, self.input_P2)
-            self.loss_G_L1 = losses[0]
-            self.loss_originL1 = losses[1].item()
-            self.loss_perceptual = losses[2].item()
-        else:
-            self.loss_G_L1 = self.criterionL1(self.fake_p2, self.input_P2) * self.opt.lambda_A
-
-        pair_L1loss = self.loss_G_L1
-        if self.opt.with_D_PB:
-            pair_GANloss = self.loss_G_GAN_PB * self.opt.lambda_GAN
-            if self.opt.with_D_PP:
-                pair_GANloss += self.loss_G_GAN_PP * self.opt.lambda_GAN
-                pair_GANloss = pair_GANloss / 2
-        else:
-            if self.opt.with_D_PP:
-                pair_GANloss = self.loss_G_GAN_PP * self.opt.lambda_GAN
-
-        if self.opt.with_D_PB or self.opt.with_D_PP:
-            pair_loss = pair_L1loss + pair_GANloss
-        else:
-            pair_loss = pair_L1loss
-
-        if backward:
-            pair_loss.backward()
-
-        self.pair_L1loss = pair_L1loss.item()
-        if self.opt.with_D_PB or self.opt.with_D_PP:
-            self.pair_GANloss = pair_GANloss.item()
 
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
@@ -174,25 +166,72 @@ class TransferModel(BaseModel):
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):
         real_PB = torch.cat((self.input_P2, self.input_BP2), 1)
-        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_p2, self.input_BP2), 1).data)
+        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2), 1).data)
         loss_D_PB = self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
         self.loss_D_PB = loss_D_PB.item()
 
     # D: take(P, P') as input
     def backward_D_PP(self, backward=True):
         real_PP = torch.cat((self.input_P2, self.input_P1), 1)
-        fake_PP = self.fake_PP_pool.query(torch.cat((self.fake_p2, self.input_P1), 1).data)
+        fake_PP = self.fake_PP_pool.query(torch.cat((self.fake_P2, self.input_P1), 1).data)
         loss_D_PP = self.backward_D_basic(self.netD_PP, real_PP, fake_PP, backward=backward)
         self.loss_D_PP = loss_D_PP.item()
+
+    def backward_G(self, backward=True):
+        if self.opt.with_D_PB:
+            pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
+            self.loss_G_GAN_PB = self.criterionGAN(pred_fake_PB, True)
+
+        if self.opt.with_D_PP:
+            pred_fake_PP = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1))
+            self.loss_G_GAN_PP = self.criterionGAN(pred_fake_PP, True)
+
+        if self.opt.with_D_PB:
+            pair_GANloss = self.loss_G_GAN_PB * self.opt.lambda_GAN
+            if self.opt.with_D_PP:
+                pair_GANloss += self.loss_G_GAN_PP * self.opt.lambda_GAN
+                pair_GANloss = pair_GANloss / 2
+        else:
+            if self.opt.with_D_PP:
+                pair_GANloss = self.loss_G_GAN_PP * self.opt.lambda_GAN
+
+        # First, G(A) should fake the discriminator
+        if self.opt.lambda_NCE > 0.0:
+            self.loss_NCE = self.calculate_NCE_loss([self.input_P1, self.input_BP1],
+                                                    [self.fake_P2, self.input_BP2])
+        else:
+            self.loss_NCE, self.loss_NCE_bd = 0.0, 0.0
+
+        if self.opt.nce_idt and self.opt.lambda_NCE > 0.0:
+            self.loss_NCE_Y = self.calculate_NCE_loss([self.fake_P2, self.input_BP2],
+                                                      [self.idt_P2, self.input_BP2])
+            loss_NCE_both = (self.loss_NCE + self.loss_NCE_Y) * 0.5
+        else:
+            loss_NCE_both = self.loss_NCE
+
+        if self.opt.with_D_PB or self.opt.with_D_PP:
+            pair_loss = loss_NCE_both + pair_GANloss
+        else:
+            pair_loss = loss_NCE_both
+
+        if backward:
+            pair_loss.backward()
+
+        self.loss_NCE_both = loss_NCE_both.item()
+        if self.opt.with_D_PB or self.opt.with_D_PP:
+            self.pair_GANloss = pair_GANloss.item()
 
     def optimize_parameters(self, backward=True):
         # forward
         self.forward()
 
         self.optimizer_G.zero_grad()
+        if self.opt.netF == 'mlp_sample':
+            self.optimizer_F.zero_grad()
         self.backward_G(backward=backward)
-
         self.optimizer_G.step()
+        if self.opt.netF == 'mlp_sample':
+            self.optimizer_F.step()
 
         # D_P
         if self.opt.with_D_PP:
@@ -208,8 +247,25 @@ class TransferModel(BaseModel):
                 self.backward_D_PB(backward=backward)
                 self.optimizer_D_PB.step()
 
+    def calculate_NCE_loss(self, src, tgt):
+        feat_q = self.netG(tgt + [self.input_BP2, ], encode_only=True)
+
+        if self.opt.flip_equivariance and self.flipped_for_equivariance:
+            feat_q = [torch.flip(fq, [3]) for fq in feat_q]
+
+        feat_k = self.netG(src + [self.input_BP2, ], encode_only=True)
+        feat_k_pool, sample_ids = self.netF(feat_k, self.opt.num_patches, None)
+        feat_q_pool, _ = self.netF(feat_q, self.opt.num_patches, sample_ids)
+
+        total_nce_loss = 0.0
+        for f_q, f_k, crit, nce_layer in zip(feat_q_pool, feat_k_pool, self.criterionNCE, range(self.nce_nb_layers)):
+            loss = crit(f_q, f_k) * self.opt.lambda_NCE
+            total_nce_loss += loss.mean()
+
+        return total_nce_loss / self.nce_nb_layers
+
     def get_current_errors(self):
-        ret_errors = OrderedDict([('pair_L1loss', self.pair_L1loss)])
+        ret_errors = OrderedDict()
         if self.opt.with_D_PP:
             ret_errors['D_PP'] = self.loss_D_PP
         if self.opt.with_D_PB:
@@ -217,14 +273,15 @@ class TransferModel(BaseModel):
         if self.opt.with_D_PB or self.opt.with_D_PP:
             ret_errors['pair_GANloss'] = self.pair_GANloss
 
-        if self.opt.L1_type == 'l1_plus_perL1':
-            ret_errors['origin_L1'] = self.loss_originL1
-            ret_errors['perceptual'] = self.loss_perceptual
+        ret_errors['loss_NCE'] = self.loss_NCE
+        if self.opt.nce_idt and self.opt.lambda_NCE > 0.0:
+            ret_errors['loss_NCE_Y'] = self.loss_NCE_Y
+        ret_errors['loss_NCE_both'] = self.loss_NCE_both
 
         return ret_errors
 
     def get_current_p2(self):
-        return util.tensor2im(self.fake_p2.data)
+        return util.tensor2im(self.fake_P2.data)
 
     def get_current_visuals(self):
         height, width = self.input_P1.size(2), self.input_P1.size(3)
@@ -234,13 +291,13 @@ class TransferModel(BaseModel):
         input_BP1 = util.draw_pose_from_map(self.input_BP1.data)[0]
         input_BP2 = util.draw_pose_from_map(self.input_BP2.data)[0]
 
-        fake_p2 = util.tensor2im(self.fake_p2.data)
+        fake_P2 = util.tensor2im(self.fake_P2.data)
         vis = np.zeros((height, width * 5, 3)).astype(np.uint8)  # h, w, c
         vis[:, :width, :] = input_P1
         vis[:, width:width * 2, :] = input_BP1
         vis[:, width * 2:width * 3, :] = input_P2
         vis[:, width * 3:width * 4, :] = input_BP2
-        vis[:, width * 4:, :] = fake_p2
+        vis[:, width * 4:, :] = fake_P2
 
         ret_visuals = OrderedDict([('vis', vis)])
 

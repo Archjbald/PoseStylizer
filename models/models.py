@@ -5,10 +5,15 @@ def create_model(opt):
 
     if opt.model == 'PoseStyleNet':
         assert opt.dataset_mode in ['keypoint', 'keypoint_segmentation']
-        from .PoseStyleNet import TransferModel
+        if opt.backward == 'cut':
+            from .PoseCutNet import TransferCUTModel
+            model = TransferCUTModel()
+        else:
+            from .PoseStyleNet import TransferModel
+            model = TransferModel()
     else:
         raise ValueError("Model [%s] not recognized." % opt.model)
-    model = TransferModel()
+
     model.initialize(opt)
     print("model [%s] was created" % (model.name()))
     return model

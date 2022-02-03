@@ -55,4 +55,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--DG_ratio', type=int, default=1,
                                  help='how many times for D training after training G once')
 
+        # CUT
+        self.parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')
+
         self.isTrain = True

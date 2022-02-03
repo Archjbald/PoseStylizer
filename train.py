@@ -51,6 +51,10 @@ def train(opt, model, train_dataset, val_dataset):
             visualizer.reset()
             total_steps += 1
             epoch_iter += 1
+
+            if opt.backward == 'cut' and epoch == opt.epoch_count and i == 0:
+                model.data_dependent_initialize(data)
+
             model.set_input(data)
             model.optimize_parameters()
 

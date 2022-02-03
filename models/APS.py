@@ -269,7 +269,7 @@ class Model(nn.Module):
         self.up_blocks_full = nn.Sequential(*up_blocks_full)
         self.out_node_full = nn.Sequential(*out_node_full)
 
-    def forward(self, input):
+    def forward(self, input, encode_only=False):
         # here input should be a tuple
         # Person Source, Backbone Person Source, Backbone Person Target, Mask Person Source
         ps, bps, bpt = input
@@ -278,9 +278,14 @@ class Model(nn.Module):
         psf = self.psf_down(ps)
         bps = self.bps_down(bps)
 
+        feats = [ps, psf]
         # down
         for down_block in self.down_blocks:
             psf, bps = down_block(psf, bps)
+            feats.append(psf)
+
+        if encode_only:
+            return feats
 
             # up
         ptf = nn.functional.interpolate(bpt, size=(psf.shape[2], psf.shape[3]), mode='bilinear', align_corners=False)
@@ -313,5 +318,5 @@ class stylegenerator(nn.Module):
         self.model = Model(input_nc, output_nc, ngf, norm_layer, use_dropout, n_blocks, gpu_ids, padding_type,
                            n_downsampling=n_downsampling, opt=opt)
 
-    def forward(self, input):
-        return self.model(input)
+    def forward(self, input, encode_only=False):
+        return self.model(input, encode_only=encode_only)
