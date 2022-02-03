@@ -92,6 +92,7 @@ class TransferCUTModel(BaseModel):
             print('---------- Networks initialized -------------')
 
     def set_input(self, input):
+        print(self.input_P1.shape, self.input_P2.shape)
         self.input_P1, self.input_BP1 = input['P1'], input['BP1']
         self.input_P2, self.input_BP2 = input['P2'], input['BP2']
         if self.opt.dataset_mode in ['keypoint_segmentation']:
