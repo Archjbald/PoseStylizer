@@ -76,7 +76,7 @@ class BaseOptions():
                                  help='scaling factor for normal, xavier and orthogonal.')
         self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
 
-        self.parser.add_argument('--nce_idt', action='store_true',
+        self.parser.add_argument('--nce_idt', type=bool, default=True,
                                  help='use NCE loss for identity mapping: NCE(G(Y), Y))')
         self.parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16',
                                  help='compute NCE loss on which layers')

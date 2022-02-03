@@ -132,11 +132,15 @@ class TransferCUTModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        input_P1 = (torch.cat((self.input_P1, self.input_P2), dim=0)
-                    if self.opt.nce_idt and self.opt.isTrain else self.input_P1)
 
-        print(self.input_P1.shape, input_P1.shape)
-        G_input = [input_P1, self.input_BP1, self.input_BP2]
+        G_input = [self.input_P1, self.input_BP1, self.input_BP2]
+        if self.opt.nce_idt and self.opt.isTrain:
+            G_input = [
+                torch.cat((self.input_P1, self.input_P2), dim=0),
+                torch.cat((self.input_BP1, self.input_BP2), dim=0),
+                torch.cat((self.input_BP1, self.input_BP2), dim=0),
+            ]
+
         if self.opt.dataset_mode == 'keypoint_segmentation':
             G_input.append(self.input_MP1)
         output = self.netG(G_input)
