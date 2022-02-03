@@ -133,9 +133,8 @@ def define_F(netF, init_type='normal', init_gain=0.02, gpu_ids=[], opt=None):
     else:
         raise NotImplementedError('projection model name [%s] is not recognized' % netF)
 
-    if len(gpu_ids) > 0:
-        assert (torch.cuda.is_available())
-        net.to(gpu_ids[0])
+    if len(gpu_ids) > 1:
+        net = nn.DataParallel(net, device_ids=gpu_ids)
 
     return net
 
