@@ -151,7 +151,6 @@ class DownBlock(nn.Module):
         x2_out = self.conv_block_stream2(x2)
 
         att = torch.sigmoid(x2_out)
-        print(x1_out.shape, x2_out.shape, att.shape)
         x1_out = x1_out * att
         x1_out = x1_out + x1  # residual connection
 
@@ -278,8 +277,6 @@ class Model(nn.Module):
         # in-node
         psf = self.psf_down(ps)
         bps = self.bps_down(bps)
-
-        print(ps.shape, psf.shape)
 
         feats = [ps, psf]
         # down

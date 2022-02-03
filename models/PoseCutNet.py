@@ -92,7 +92,6 @@ class TransferCUTModel(BaseModel):
             print('---------- Networks initialized -------------')
 
     def set_input(self, input):
-        print(self.input_P1.shape, self.input_P2.shape)
         self.input_P1, self.input_BP1 = input['P1'], input['BP1']
         self.input_P2, self.input_BP2 = input['P2'], input['BP2']
         if self.opt.dataset_mode in ['keypoint_segmentation']:
@@ -118,7 +117,13 @@ class TransferCUTModel(BaseModel):
         bs_per_gpu = data["P1"].size(0) // max(len(self.opt.gpu_ids), 1)
         self.set_input(data)
         self.input_P1 = self.input_P1[:bs_per_gpu]
+        self.input_BP1 = self.input_BP1[:bs_per_gpu]
         self.input_P2 = self.input_P2[:bs_per_gpu]
+        self.input_BP2 = self.input_BP2[:bs_per_gpu]
+        if self.opt.dataset_mode in ['keypoint_segmentation']:
+            self.input_MP1 = self.input_MP1[:bs_per_gpu]
+            self.input_MP2 = self.input_MP2[:bs_per_gpu]
+            
         self.forward()  # compute fake images: G(A)
         if self.opt.isTrain:
             if self.opt.with_D_PP:  # calculate gradients for D
