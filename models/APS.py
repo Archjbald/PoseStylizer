@@ -279,6 +279,8 @@ class Model(nn.Module):
         psf = self.psf_down(ps)
         bps = self.bps_down(bps)
 
+        print(ps.shape, psf.shape)
+
         feats = [ps, psf]
         # down
         for i, down_block in enumerate(self.down_blocks):

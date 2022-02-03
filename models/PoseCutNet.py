@@ -135,6 +135,7 @@ class TransferCUTModel(BaseModel):
         input_P1 = (torch.cat((self.input_P1, self.input_P2), dim=0)
                     if self.opt.nce_idt and self.opt.isTrain else self.input_P1)
 
+        print(self.input_P1.shape, input_P1.shape)
         G_input = [input_P1, self.input_BP1, self.input_BP2]
         if self.opt.dataset_mode == 'keypoint_segmentation':
             G_input.append(self.input_MP1)
