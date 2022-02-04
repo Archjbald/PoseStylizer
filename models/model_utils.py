@@ -1,3 +1,5 @@
+import sys
+
 import torch.nn.functional as F
 import torch.nn as nn
 import numpy as np
@@ -111,6 +113,7 @@ class PatchNorm(nn.Module):
 
         print(2, x.shape, gamma.shape, beta.shape)
         if self.tile_cut > 0:
+            print("TC: ", self.tile_cut, -self.tile_cut)
             if self.bias:
                 beta, gamma = beta[:, :, :, self.tile_cut:-self.tile_cut], gamma[:, :, :, self.tile_cut:-self.tile_cut]
             else:
@@ -126,11 +129,10 @@ class PatchNorm(nn.Module):
         if norm == 'PixelNorm':
             x = self.pixel_norm(x)
         if self.bias:
-            try:
-                x = x * (gamma + 1.) + beta
-            except RuntimeError as er:
-                print(3, x.shape, gamma.shape, beta.shape)
-                raise er
+            print(3, x.shape, gamma.shape, beta.shape)
+            sys.exit(0)
+            x = x * (gamma + 1.) + beta
+
         else:
             x = x * (gamma + 1.)
         if return_stats:
