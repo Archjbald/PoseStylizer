@@ -130,7 +130,6 @@ class PatchNorm(nn.Module):
             x = self.pixel_norm(x)
         if self.bias:
             print(3, x.shape, gamma.shape, beta.shape)
-            sys.exit(0)
             x = x * (gamma + 1.) + beta
 
         else:
