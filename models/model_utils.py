@@ -97,7 +97,7 @@ class PatchNorm(nn.Module):
         if self.bias:
             beta, gamma = self.fc(style).chunk(2, 1)
 
-            print(x.shape, gamma.shape, beta.shape)
+            print(1, x.shape, gamma.shape, beta.shape)
             if return_stats:
                 beta_untiled, gamma_untiled = beta, gamma
             beta, gamma = tile(beta, dim=2, n_tile=self.factor), tile(gamma, dim=2, n_tile=self.factor)
@@ -109,7 +109,7 @@ class PatchNorm(nn.Module):
             gamma = tile(gamma, dim=2, n_tile=self.factor)
             gamma = tile(gamma, dim=3, n_tile=self.factor)
 
-        print(x.shape, gamma.shape, beta.shape)
+        print(2, x.shape, gamma.shape, beta.shape)
         if self.tile_cut > 0:
             if self.bias:
                 beta, gamma = beta[:, :, :, self.tile_cut:-self.tile_cut], gamma[:, :, :, self.tile_cut:-self.tile_cut]
@@ -129,7 +129,7 @@ class PatchNorm(nn.Module):
             try:
                 x = x * (gamma + 1.) + beta
             except RuntimeError as er:
-                print(x.shape, gamma.shape, beta.shape)
+                print(3, x.shape, gamma.shape, beta.shape)
                 raise er
         else:
             x = x * (gamma + 1.)
