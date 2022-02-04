@@ -89,17 +89,12 @@ class PatchNorm(nn.Module):
         self.factor = factor
         self.dataset = dataset
         self.bias = bias
-        if dataset == 'fashion' and cut:
-            self.tile_cut = int(self.factor / 4)
-        else:
-            self.tile_cut = 0
 
     def forward(self, x, style, norm='InstanceNorm', return_stats=False):
         x = self.act(x)
         if self.bias:
             beta, gamma = self.fc(style).chunk(2, 1)
 
-            print(1, x.shape, gamma.shape, beta.shape)
             if return_stats:
                 beta_untiled, gamma_untiled = beta, gamma
             beta, gamma = tile(beta, dim=2, n_tile=self.factor), tile(gamma, dim=2, n_tile=self.factor)
@@ -111,13 +106,13 @@ class PatchNorm(nn.Module):
             gamma = tile(gamma, dim=2, n_tile=self.factor)
             gamma = tile(gamma, dim=3, n_tile=self.factor)
 
-        print(2, x.shape, gamma.shape, beta.shape)
-        if self.tile_cut > 0:
-            print("TC: ", self.tile_cut, -self.tile_cut)
+        if gamma.shape[3] > x.shape[3]:
+            tile_cut = (gamma.shape[3] - x.shape[3]) // 2
             if self.bias:
-                beta, gamma = beta[:, :, :, self.tile_cut:-self.tile_cut], gamma[:, :, :, self.tile_cut:-self.tile_cut]
+                beta, gamma = (beta[:, :, :, tile_cut:x.shape[3] + tile_cut],
+                               gamma[:, :, :, tile_cut:x.shape[3] + tile_cut])
             else:
-                gamma = gamma[:, :, :, self.tile_cut:-self.tile_cut]
+                gamma = gamma[:, :, :, tile_cut:x.shape[3] + tile_cut]
         if norm is None:
             x_mean = calc_patch_mean(x, self.factor)
             x = x - x_mean
