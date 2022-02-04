@@ -118,7 +118,11 @@ class PatchNorm(nn.Module):
         if norm == 'PixelNorm':
             x = self.pixel_norm(x)
         if self.bias:
-            x = x * (gamma + 1.) + beta
+            try:
+                x = x * (gamma + 1.) + beta
+            except RuntimeError as er:
+                print(x.shape, gamma.shape, beta.shape)
+                raise er
         else:
             x = x * (gamma + 1.)
         if return_stats:

@@ -281,7 +281,6 @@ class Model(nn.Module):
         feats = [ps, psf]
         # down
         for i, down_block in enumerate(self.down_blocks):
-            print(f"Down {i}")
             psf, bps = down_block(psf, bps)
             feats.append(psf)
 
