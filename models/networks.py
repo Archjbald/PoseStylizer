@@ -117,9 +117,10 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
     netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
                           n_blocks=9, gpu_ids=gpu_ids, n_downsampling=n_downsampling, opt=opt)
 
-    netG.cuda()
     if len(gpu_ids) > 1:
         netG = nn.DataParallel(netG, device_ids=gpu_ids)
+
+    netG.cuda()
     init_weights(netG, init_type=init_type)
     return netG
 
@@ -136,6 +137,7 @@ def define_F(netF, init_type='normal', init_gain=0.02, gpu_ids=[], opt=None):
     if len(gpu_ids) > 1:
         net = nn.DataParallel(net, device_ids=gpu_ids)
 
+    net.cuda()
     return net
 
 
@@ -157,12 +159,12 @@ def define_D(input_nc, ndf, which_model_netD,
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
 
-    netD.cuda()
     if len(gpu_ids) > 1:
         netD = nn.DataParallel(netD, device_ids=gpu_ids)
     #     if use_gpu:
     #         netD.cuda(gpu_ids[0])
 
+    netD.cuda()
     return netD
 
 
@@ -356,8 +358,6 @@ class PatchSampleF(nn.Module):
             input_nc = feat.shape[1]
             print(feat.shape, self.nc)
             mlp = nn.Sequential(*[nn.Linear(input_nc, self.nc), nn.ReLU(), nn.Linear(self.nc, self.nc)])
-            if len(self.gpu_ids) > 0:
-                mlp.cuda()
             setattr(self, 'mlp_%d' % mlp_id, mlp)
         self.mlp_init = True
         print('MLP is set')
