@@ -4,19 +4,22 @@ import numpy as np
 import torch
 import os
 
+
 class ApplyStyle(nn.Module):
     def __init__(self, latent_size, channels, use_wscale):
         super(ApplyStyle, self).__init__()
         self.linear = FC(latent_size,
-                      channels * 2,
-                      gain=1.0,
-                      use_wscale=use_wscale)
+                         channels * 2,
+                         gain=1.0,
+                         use_wscale=use_wscale)
+
     def forward(self, x, latent):
-            style = self.linear(latent)  # style => [batch_size, n_channels*2]
-            shape = [-1, 2, x.size(1), 1, 1]
-            style = style.view(shape)    # [batch_size, 2, n_channels, ...]
-            x = x * (style[:, 0] + 1.) + style[:, 1]
-            return x
+        style = self.linear(latent)  # style => [batch_size, n_channels*2]
+        shape = [-1, 2, x.size(1), 1, 1]
+        style = style.view(shape)  # [batch_size, 2, n_channels, ...]
+        x = x * (style[:, 0] + 1.) + style[:, 1]
+        return x
+
 
 class AdaIN(nn.Module):
     def __init__(self,
@@ -62,6 +65,7 @@ class AdaIN(nn.Module):
             x = self.style_mod(x, dlatents_in_slice)
         return x
 
+
 class PatchNorm(nn.Module):
     def __init__(self,
                  in_channels,
@@ -77,40 +81,44 @@ class PatchNorm(nn.Module):
         self.instance_norm = InstanceNorm()
         self.pixel_norm = PixelNorm()
         if bias:
-            self.fc = nn.Conv2d(in_channels, out_channels*2, 1, stride=1, padding=0, bias=True)
+            self.fc = nn.Conv2d(in_channels, out_channels * 2, 1, stride=1, padding=0, bias=True)
         else:
             self.fc = nn.Conv2d(in_channels, out_channels, 1, stride=1, padding=0, bias=True)
         self.factor = factor
         self.dataset = dataset
         self.bias = bias
         if dataset == 'fashion' and cut:
-            self.tile_cut = int(self.factor/4)
+            self.tile_cut = int(self.factor / 4)
         else:
             self.tile_cut = 0
 
     def forward(self, x, style, norm='InstanceNorm', return_stats=False):
         x = self.act(x)
         if self.bias:
-            beta, gamma = self.fc(style).chunk(2,1)
+            beta, gamma = self.fc(style).chunk(2, 1)
+
+            print(x.shape, gamma.shape, beta.shape)
             if return_stats:
-                beta_untiled, gamma_untiled =  beta, gamma
+                beta_untiled, gamma_untiled = beta, gamma
             beta, gamma = tile(beta, dim=2, n_tile=self.factor), tile(gamma, dim=2, n_tile=self.factor)
             beta, gamma = tile(beta, dim=3, n_tile=self.factor), tile(gamma, dim=3, n_tile=self.factor)
         else:
             gamma = self.fc(style)
             if return_stats:
-                beta_untiled, gamma_untiled =  None, gamma
+                beta_untiled, gamma_untiled = None, gamma
             gamma = tile(gamma, dim=2, n_tile=self.factor)
             gamma = tile(gamma, dim=3, n_tile=self.factor)
+
+        print(x.shape, gamma.shape, beta.shape)
         if self.tile_cut > 0:
             if self.bias:
-                beta, gamma = beta[:,:,:,self.tile_cut:-self.tile_cut], gamma[:,:,:,self.tile_cut:-self.tile_cut]
+                beta, gamma = beta[:, :, :, self.tile_cut:-self.tile_cut], gamma[:, :, :, self.tile_cut:-self.tile_cut]
             else:
-                gamma = gamma[:,:,:,self.tile_cut:-self.tile_cut]
-        if norm is None: 
+                gamma = gamma[:, :, :, self.tile_cut:-self.tile_cut]
+        if norm is None:
             x_mean = calc_patch_mean(x, self.factor)
-            x   = x - x_mean
-            tmp = torch.mul(x, x) 
+            x = x - x_mean
+            tmp = torch.mul(x, x)
             x_std = torch.rsqrt(calc_patch_mean(tmp, self.factor) + 1e-8)
             x = x * x_std
         if norm == 'InstanceNorm':
@@ -129,12 +137,13 @@ class PatchNorm(nn.Module):
             return x, beta_untiled, gamma_untiled
         else:
             return x
-    
+
+
 class FC(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 gain=2**(0.5),
+                 gain=2 ** (0.5),
                  use_wscale=False,
                  lrmul=1.0,
                  bias=True):
@@ -163,20 +172,23 @@ class FC(nn.Module):
         out = F.leaky_relu(out, 0.2, inplace=True)
         return out
 
+
 def tile(a, dim, n_tile):
     init_dim = a.size(dim)
     repeat_idx = [1] * a.dim()
     repeat_idx[dim] = n_tile
     a = a.repeat(*(repeat_idx))
     order_index = torch.LongTensor(np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])).cuda()
-    return torch.index_select(a, dim, order_index)    
+    return torch.index_select(a, dim, order_index)
+
 
 def calc_patch_mean(x, factor=8):
-    h, w = int(x.shape[2]/factor), int(x.shape[3]/factor)
+    h, w = int(x.shape[2] / factor), int(x.shape[3] / factor)
     x_mean = F.adaptive_avg_pool2d(x, (h, w))
     x_mean = tile(x_mean, dim=2, n_tile=factor)
     x_mean = tile(x_mean, dim=3, n_tile=factor)
     return x_mean
+
 
 class InstanceNorm(nn.Module):
     def __init__(self, epsilon=1e-8):
@@ -184,10 +196,11 @@ class InstanceNorm(nn.Module):
         self.epsilon = epsilon
 
     def forward(self, x):
-        x   = x - torch.mean(x, (2, 3), True)
-        tmp = torch.mul(x, x) # or x ** 2
+        x = x - torch.mean(x, (2, 3), True)
+        tmp = torch.mul(x, x)  # or x ** 2
         tmp = torch.rsqrt(torch.mean(tmp, (2, 3), True) + self.epsilon)
         return x * tmp
+
 
 class PixelNorm(nn.Module):
     def __init__(self, epsilon=1e-8):
@@ -195,11 +208,12 @@ class PixelNorm(nn.Module):
         self.epsilon = epsilon
 
     def forward(self, x):
-        tmp  = torch.mul(x, x) # or x ** 2
+        tmp = torch.mul(x, x)  # or x ** 2
         tmp1 = torch.rsqrt(torch.mean(tmp, dim=1, keepdim=True) + self.epsilon)
 
         return x * tmp1
-    
+
+
 class Conv2d(nn.Module):
     def __init__(self,
                  input_channels,
@@ -248,5 +262,3 @@ class Upscale2d(nn.Module):
             x = x.view(shape[0], shape[1], shape[2], 1, shape[3], 1).expand(-1, -1, -1, self.factor, -1, self.factor)
             x = x.contiguous().view(shape[0], shape[1], self.factor * shape[2], self.factor * shape[3])
         return x
-
-
