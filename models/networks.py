@@ -134,8 +134,10 @@ def define_F(netF, init_type='normal', init_gain=0.02, gpu_ids=[], opt=None):
     else:
         raise NotImplementedError('projection model name [%s] is not recognized' % netF)
 
+    """
     if len(gpu_ids) > 1:
         net = nn.DataParallel(net, device_ids=gpu_ids)
+    """
 
     net.cuda()
     return net
@@ -358,6 +360,8 @@ class PatchSampleF(nn.Module):
             input_nc = feat.shape[1]
             print(feat.shape, self.nc)
             mlp = nn.Sequential(*[nn.Linear(input_nc, self.nc), nn.ReLU(), nn.Linear(self.nc, self.nc)])
+            if len(self.gpu_ids) > 0:
+                mlp.cuda()
             setattr(self, 'mlp_%d' % mlp_id, mlp)
         self.mlp_init = True
         print('MLP is set')
