@@ -351,13 +351,16 @@ class PatchSampleF(nn.Module):
         self.gpu_ids = gpu_ids
 
     def create_mlp(self, feats):
+        print('Feats ', len(feats))
         for mlp_id, feat in enumerate(feats):
             input_nc = feat.shape[1]
+            print(feat.shape, self.nc)
             mlp = nn.Sequential(*[nn.Linear(input_nc, self.nc), nn.ReLU(), nn.Linear(self.nc, self.nc)])
             if len(self.gpu_ids) > 0:
                 mlp.cuda()
             setattr(self, 'mlp_%d' % mlp_id, mlp)
         self.mlp_init = True
+        print('MLP is set')
 
     def forward(self, feats, num_patches=64, patch_ids=None):
         return_ids = []
