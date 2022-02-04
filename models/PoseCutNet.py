@@ -132,6 +132,9 @@ class TransferCUTModel(BaseModel):
                 self.backward_D_PB()
             self.backward_G()
             if self.opt.lambda_NCE > 0.0:
+                print('netF', self.opt.netF)
+                for n, _ in self.netF.named_parameters():
+                    print(n)
                 self.optimizer_F = torch.optim.Adam(self.netF.parameters(), lr=self.opt.lr,
                                                     betas=(self.opt.beta1, self.opt.beta2))
                 self.optimizers.append(self.optimizer_F)
