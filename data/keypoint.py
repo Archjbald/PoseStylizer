@@ -109,7 +109,7 @@ class KeyDataset(BaseDataset):
 
     def __len__(self):
         if self.opt.phase == 'train':
-            return 4000
+            return self.opt.epoch_size
         else:
             return self.size
 
