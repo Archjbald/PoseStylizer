@@ -123,7 +123,7 @@ class TransferCUTModel(BaseModel):
         if self.opt.dataset_mode in ['keypoint_segmentation']:
             self.input_MP1 = self.input_MP1[:bs_per_gpu]
             self.input_MP2 = self.input_MP2[:bs_per_gpu]
-            
+
         self.forward()  # compute fake images: G(A)
         if self.opt.isTrain:
             if self.opt.with_D_PP:  # calculate gradients for D
@@ -259,7 +259,11 @@ class TransferCUTModel(BaseModel):
                 self.optimizer_D_PB.step()
 
     def calculate_NCE_loss(self, src, tgt):
-        feat_q = self.netG(tgt + [self.input_BP2, ], encode_only=True)
+        try:
+            feat_q = self.netG(tgt + [self.input_BP2, ], encode_only=True)
+        except TypeError as err:
+            print(tgt, self.input_BP2)
+            raise err
 
         if self.opt.flip_equivariance and self.flipped_for_equivariance:
             feat_q = [torch.flip(fq, [3]) for fq in feat_q]
