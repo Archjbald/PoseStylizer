@@ -61,3 +61,11 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')
 
         self.isTrain = True
+
+    def parse(self):
+        BaseOptions.parse(self)
+
+        if self.opt.epoch_size % self.opt.batchSize:
+            self.opt.epoch_size = (self.opt.epoch_size // self.opt.batchSize + 1) * self.opt.batchSize
+
+        return self.opt
