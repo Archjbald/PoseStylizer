@@ -107,6 +107,7 @@ def train(opt, model, train_dataset, val_dataset):
             val_errors = {}
             for v, val_data in enumerate(val_dataset):
                 with torch.no_grad():
+                    print(len(val_data))
                     model.set_input(val_data)
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
