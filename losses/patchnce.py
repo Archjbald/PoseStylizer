@@ -36,7 +36,11 @@ class PatchNCELoss(nn.Module):
             batch_dim_for_bmm = self.opt.batchSize
 
         # reshape features to batch size
-        feat_q = feat_q.view(batch_dim_for_bmm, -1, dim)
+        try:
+            feat_q = feat_q.view(batch_dim_for_bmm, -1, dim)
+        except RuntimeError as err:
+            print(batch_dim_for_bmm, dim, feat_q.shape)
+            raise err
         feat_k = feat_k.view(batch_dim_for_bmm, -1, dim)
         npatches = feat_q.size(1)
         l_neg_curbatch = torch.bmm(feat_q, feat_k.transpose(2, 1))
