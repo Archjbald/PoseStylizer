@@ -122,7 +122,8 @@ def main():
     train_data_loader = CreateDataLoader(opt)
     train_dataset = train_data_loader.load_data()
 
-    val_opt = set_test_opt(Namespace(**vars(opt)), max_dataset_size=100)
+    val_size = round(100 / opt.batchSize) * opt.batchSize
+    val_opt = set_test_opt(Namespace(**vars(opt)), max_dataset_size=val_size)
     val_data_loader = CreateDataLoader(val_opt)
     val_dataset = val_data_loader.load_data()
 
