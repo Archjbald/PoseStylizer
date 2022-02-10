@@ -114,6 +114,7 @@ class TransferCUTModel(BaseModel):
         initialized at the first feedforward pass with some input images.
         Please also see PatchSampleF.create_mlp(), which is called at the first forward() call.
         """
+        print(data["P1"].size(0), self.opt.gpu_ids)
         bs_per_gpu = data["P1"].size(0) // max(len(self.opt.gpu_ids), 1)
         self.set_input(data)
         self.input_P1 = self.input_P1[:bs_per_gpu]
