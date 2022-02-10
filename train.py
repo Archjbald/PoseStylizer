@@ -103,7 +103,7 @@ def train(opt, model, train_dataset, val_dataset):
               (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
 
         # Validation
-        if opt.bacward in ['basic'] and epoch % opt.val_epoch_freq == 0:
+        if opt.backward in ['basic'] and epoch % opt.val_epoch_freq == 0:
             val_errors = {}
             for v, val_data in enumerate(val_dataset):
                 with torch.no_grad():
