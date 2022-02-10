@@ -274,7 +274,11 @@ class TransferCUTModel(BaseModel):
 
         total_nce_loss = 0.0
         for f_q, f_k, crit, nce_layer in zip(feat_q_pool, feat_k_pool, self.criterionNCE, range(self.nce_nb_layers)):
-            loss = crit(f_q, f_k) * self.opt.lambda_NCE
+            try:
+                loss = crit(f_q, f_k) * self.opt.lambda_NCE
+            except RuntimeError as err:
+                print('\t'.join([str(q.shape) for q in feat_q_pool]))
+                raise err
             total_nce_loss += loss.mean()
 
         return total_nce_loss / self.nce_nb_layers
