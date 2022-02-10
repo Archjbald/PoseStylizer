@@ -277,7 +277,7 @@ class TransferCUTModel(BaseModel):
             try:
                 loss = crit(f_q, f_k) * self.opt.lambda_NCE
             except RuntimeError as err:
-                print(tgt.shape, self.input_BP2.shape)
+                print('\t'.join([str(q.shape) for q in tgt]), self.input_BP2.shape)
                 print('\t'.join([str(q.shape) for q in feat_q]))
                 print('\t'.join([str(q.shape) for q in feat_q_pool]))
                 raise err
