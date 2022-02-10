@@ -117,6 +117,7 @@ class TransferCUTModel(BaseModel):
         print(data["P1"].size(0), self.opt.gpu_ids)
         bs_per_gpu = data["P1"].size(0) // max(len(self.opt.gpu_ids), 1)
         self.set_input(data)
+        print(len(self.input_P1))
         self.input_P1 = self.input_P1[:bs_per_gpu]
         self.input_BP1 = self.input_BP1[:bs_per_gpu]
         self.input_P2 = self.input_P2[:bs_per_gpu]
