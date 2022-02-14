@@ -22,8 +22,10 @@ def test(opt, model, dataset):
         if i >= opt.how_many:
             break
 
-        if opt.backward == 'cut' and i == 0:
-            model.data_dependent_initialize(data)
+        if i == 0:
+            if opt.backward == 'cut':
+                model.data_dependent_initialize(data)
+            model.parallelize()
 
         model.set_input(data)
         startTime = time.time()

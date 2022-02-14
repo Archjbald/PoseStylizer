@@ -24,6 +24,7 @@ class TransferCUTModel(BaseModel):
         self.opt = opt
 
         self.nce_nb_layers = opt.G_n_downsampling + 2
+        self.model_names = ['netG', 'netF']
 
         # define networks (both generator and discriminator)
         input_nc = [opt.P_input_nc, opt.BP_input_nc, opt.BP_input_nc]
@@ -42,6 +43,7 @@ class TransferCUTModel(BaseModel):
                                                  opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
+                self.model_names.append('netD_PB')
 
             if opt.with_D_PP:
                 self.netD_PP = networks.define_D(opt.P_input_nc + opt.P_input_nc, opt.ndf,
@@ -49,6 +51,7 @@ class TransferCUTModel(BaseModel):
                                                  opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
+                self.model_names.append('netD_PP')
 
         which_epoch = opt.which_epoch
         if not self.isTrain or opt.continue_train:
@@ -345,6 +348,7 @@ class TransferCUTModel(BaseModel):
 
     def save(self, label, epoch, total_steps):
         self.save_network(self.netG, 'netG', label, self.gpu_ids, epoch, total_steps)
+        self.save_network(self.netF, 'netF', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PB:
             self.save_network(self.netD_PB, 'netD_PB', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PP:

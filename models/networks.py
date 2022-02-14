@@ -117,8 +117,10 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
     netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
                           n_blocks=9, gpu_ids=gpu_ids, n_downsampling=n_downsampling, opt=opt)
 
+    """
     if len(gpu_ids) > 1:
         netG = nn.DataParallel(netG, device_ids=gpu_ids)
+    """
 
     netG.cuda()
     init_weights(netG, init_type=init_type)
@@ -160,11 +162,12 @@ def define_D(input_nc, ndf, which_model_netD,
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
-
+    """
     if len(gpu_ids) > 1:
         netD = nn.DataParallel(netD, device_ids=gpu_ids)
     #     if use_gpu:
     #         netD.cuda(gpu_ids[0])
+    """
 
     netD.cuda()
     return netD
@@ -361,6 +364,10 @@ class PatchSampleF(nn.Module):
             if len(self.gpu_ids) > 0:
                 mlp.cuda()
             setattr(self, 'mlp_%d' % mlp_id, mlp)
+        if len(self.gpu_ids) > 0:
+            assert (torch.cuda.is_available())
+            self.to(self.gpu_ids[0])
+        init_weights(self, self.init_type)
         self.mlp_init = True
 
     def forward(self, feats, num_patches=64, patch_ids=None):

@@ -64,6 +64,10 @@ class BaseModel(nn.Module):
     def load_network(self, network, network_label, epoch_label):
         save_filename = '%s_%s.pth' % (epoch_label, network_label)
         save_path = os.path.join(self.save_dir, save_filename)
+
+        if isinstance(network, torch.nn.DataParallel):
+            network = network.module
+
         if os.path.exists(save_path):
             named_params = [n for n, _ in network.named_parameters()]
             checkpoint = torch.load(save_path)
@@ -82,6 +86,12 @@ class BaseModel(nn.Module):
             print("Found checkpoints. Network loaded.")
         else:
             print("Not found checkpoints. Network from scratch.")
+
+    def parallelize(self):
+        for name in self.model_names:
+            if isinstance(name, str):
+                net = getattr(self, name)
+                setattr(self, name, torch.nn.DataParallel(net, self.opt.gpu_ids))
 
     # update learning rate (called once every epoch)
     def update_learning_rate(self):

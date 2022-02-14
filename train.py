@@ -47,13 +47,17 @@ def train(opt, model, train_dataset, val_dataset):
         epoch_start_time = time.time()
         epoch_iter = 0
         for i, data in enumerate(train_dataset):
+            if len(opt.gpu_ids) > 0:
+                torch.cuda.synchronize()
             iter_start_time = time.time()
             visualizer.reset()
             total_steps += 1
             epoch_iter += 1
 
-            if opt.backward == 'cut' and epoch == opt.epoch_count and i == 0:
-                model.data_dependent_initialize(data)
+            if epoch == epoch_count and i == 0:
+                if opt.backward == 'cut':
+                    model.data_dependent_initialize(data)
+                model.parallelize()
 
             model.set_input(data)
             model.optimize_parameters()
