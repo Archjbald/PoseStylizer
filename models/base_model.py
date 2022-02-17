@@ -88,6 +88,8 @@ class BaseModel(nn.Module):
             print("Not found checkpoints. Network from scratch.")
 
     def parallelize(self):
+        if len(self.opt.gpu_ids) <= 1:
+            pass
         for name in self.model_names:
             if isinstance(name, str):
                 net = getattr(self, name)

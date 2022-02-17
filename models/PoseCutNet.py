@@ -272,8 +272,19 @@ class TransferCUTModel(BaseModel):
             feat_q = [torch.flip(fq, [3]) for fq in feat_q]
 
         feat_k = self.netG(src + [self.input_BP2, ], encode_only=True)
-        feat_k_pool, sample_ids = self.netF(feat_k, self.opt.num_patches, None)
-        feat_q_pool, _ = self.netF(feat_q, self.opt.num_patches, sample_ids)
+
+        scales = torch.tensor([f.shape[-2:] for f in feat_q], device=self.input_P1.device)
+
+        if isinstance(self.netF, torch.nn.DataParallel):
+            sample_ids, num_patches = self.netF.module.get_ids_kps(self.input_BP1, self.input_BP2, scales,
+                                                                   num_patches=self.opt.num_patches)
+        else:
+            sample_ids, num_patches = self.netF.get_ids_kps(self.input_BP1, self.input_BP2, scales,
+                                                            num_patches=self.opt.num_patches)
+
+        self.opt.num_patches = num_patches
+        feat_k_pool, _ = self.netF(feat_k, num_patches=self.opt.num_patches, patch_ids=sample_ids[0])
+        feat_q_pool, _ = self.netF(feat_q, num_patches=self.opt.num_patches, patch_ids=sample_ids[1])
 
         total_nce_loss = 0.0
         for f_q, f_k, crit, nce_layer in zip(feat_q_pool, feat_k_pool, self.criterionNCE, range(self.nce_nb_layers)):

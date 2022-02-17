@@ -20,6 +20,7 @@ class TransferModel(BaseModel):
         self.opt = opt
 
         input_nc = [opt.P_input_nc, opt.BP_input_nc, opt.BP_input_nc]
+        self.model_names = ['netG']
 
         self.netG = networks.define_G(input_nc, opt.P_input_nc,
                                       opt.ngf, opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type,
@@ -33,6 +34,7 @@ class TransferModel(BaseModel):
                                                  opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
+                self.model_names.append('netD_PB')
 
             if opt.with_D_PP:
                 self.netD_PP = networks.define_D(opt.P_input_nc + opt.P_input_nc, opt.ndf,
@@ -40,6 +42,7 @@ class TransferModel(BaseModel):
                                                  opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
+                self.model_names.append('netD_PP')
 
         which_epoch = opt.which_epoch
         if not self.isTrain or opt.continue_train:

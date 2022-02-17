@@ -5,6 +5,7 @@ import functools
 from torch.optim import lr_scheduler
 import numpy as np
 import torch.nn.functional as F
+import torchvision.transforms.functional as fn
 
 import sys
 
@@ -130,9 +131,9 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
 def define_F(netF, init_type='normal', init_gain=0.02, gpu_ids=[], opt=None):
     net = None
     if netF == 'sample':
-        net = PatchSampleF(use_mlp=False, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids, nc=opt.netF_nc)
+        net = PatchSamplePoseF(use_mlp=False, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids, nc=opt.netF_nc)
     elif netF == 'mlp_sample':
-        net = PatchSampleF(use_mlp=True, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids, nc=opt.netF_nc)
+        net = PatchSamplePoseF(use_mlp=True, init_type=init_type, init_gain=init_gain, gpu_ids=gpu_ids, nc=opt.netF_nc)
     else:
         raise NotImplementedError('projection model name [%s] is not recognized' % netF)
 
@@ -388,6 +389,146 @@ class PatchSampleF(nn.Module):
                     patch_id = patch_id[:int(min(num_patches, patch_id.shape[0]))]  # .to(patch_ids.device)
                 patch_id = torch.tensor(patch_id, dtype=torch.long, device=feat.device)
                 x_sample = feat_reshape[:, patch_id, :].flatten(0, 1)  # reshape(-1, x.shape[1])
+            else:
+                x_sample = feat_reshape
+                patch_id = []
+            if self.use_mlp:
+                mlp = getattr(self, 'mlp_%d' % feat_id)
+                x_sample = mlp(x_sample)
+            return_ids.append(patch_id)
+            x_sample = self.l2norm(x_sample)
+
+            if num_patches == 0:
+                x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
+            return_feats.append(x_sample)
+        return return_feats, return_ids
+
+
+class PatchSamplePoseF(nn.Module):
+    def __init__(self, use_mlp=False, init_type='normal', init_gain=0.02, nc=256, gpu_ids=[]):
+        # potential issues: currently, we use the same patch_ids for multiple images in the batch
+        super(PatchSamplePoseF, self).__init__()
+        self.l2norm = Normalize(2)
+        self.use_mlp = use_mlp
+        self.nc = nc  # hard-coded
+        self.mlp_init = False
+        self.init_type = init_type
+        self.init_gain = init_gain
+        self.gpu_ids = gpu_ids
+
+    def create_mlp(self, feats):
+        for mlp_id, feat in enumerate(feats):
+            input_nc = feat.shape[1]
+            mlp = nn.Sequential(*[nn.Linear(input_nc, self.nc), nn.ReLU(), nn.Linear(self.nc, self.nc)])
+            if len(self.gpu_ids) > 0:
+                mlp.cuda()
+            setattr(self, 'mlp_%d' % mlp_id, mlp)
+        if len(self.gpu_ids) > 0:
+            assert (torch.cuda.is_available())
+            self.to(self.gpu_ids[0])
+        init_weights(self, self.init_type)
+        self.mlp_init = True
+
+    @staticmethod
+    def get_ids_kps(bp1, bp2, scales, num_patches=64):
+        """
+        Generate list of patch ids according to skeleton.
+        Skeleton ids are shared across scales, random are not
+        :param bp1: skeleton 1 (BxCxHxW)
+        :param bp2: skeleton 2 (BxCxHxW)
+        :param scales: shapes of each feature vector (FxBxCxHxW)
+        :param num_patches: number of expected patches
+        :return: list of ids per scales, num_patches
+        """
+        device = bp1.device
+        patch_shape = (3, 3)
+        patch_size = patch_shape[0] * patch_shape[1]
+        # bp1 = torch.cat((bp1, bp1))
+        # bp2 = torch.cat((bp2, bp2))
+        assert bp1.shape == bp2.shape
+        B, C, H, W = bp1.shape
+
+        min_num_p = patch_size * C
+        if num_patches < min_num_p:
+            print('Not enough patches for CUT pose, setting to ', min_num_p)
+            num_patches = min_num_p
+
+        v_1, kps_1 = bp1.view(*bp1.shape[:-2], -1).max(dim=-1)
+        kps_1 = torch.stack((kps_1.div(W, rounding_mode='trunc'), kps_1 % W), -1)
+        v_1 = v_1 > 0.1
+
+        v_2, kps_2 = bp2.view(*bp2.shape[:-2], -1).max(dim=-1)
+        kps_2 = torch.stack((kps_2.div(W, rounding_mode='trunc'), kps_2 % W), -1)
+        v_2 = v_2 > 0.1
+
+        v_12 = (v_1 * v_2).nonzero()
+        ratios = scales / torch.tensor([H, W], device=device)
+
+        patch_ids = []
+        patch_id_0 = -torch.ones((2, B, num_patches), dtype=torch.long, device=device)
+        for s, scale in enumerate(scales):
+            patch_id = patch_id_0.clone()
+
+            # Keypoint patches
+            h, w = scale.tolist()
+            idx = torch.arange(0, h * w).view(h, w)
+            idx_pad = F.pad(idx, (1, 1, 1, 1), value=-1)
+            idx_patches = idx_pad.unfold(0, 3, 1).unfold(1, 3, 1).contiguous().view(h, w, -1)
+
+            ratio = ratios[s]
+            for i, kps in enumerate([kps_1, kps_2]):
+                kp = kps[v_12[:, 0], v_12[:, 1]]
+                kp = (kp * ratio[None, :]).round().type(torch.int)
+                coords = torch.stack([v_12[:, 0], v_12[:, 1], kp[:, 0], kp[:, 1]], dim=1)
+                for coord in coords:
+                    patch_id[i, coord[0], coord[1] * patch_size:(coord[1] + 1) * patch_size] = idx_patches[
+                        coord[-2], coord[-1]]
+            patch_ids.append(patch_id)
+
+        # Random Patches
+        mask_1 = bp1.sum(dim=1) > 0.1
+        mask_2 = bp2.sum(dim=1) > 0.1
+        mask_12 = mask_1 * mask_2
+
+        for s, scale in enumerate(scales):
+            # idx_random = (patch_ids[s] == -1).nonzero()  # [2, B, num_patch]
+            # nb_random = [len(idx_random[idx_random[:, 0] == i]) for i in range(2)]  # [2, nz]
+
+            idx_random = [[patch_ids[s][i, j] == -1 for j in range(B)] for i in range(2)]
+
+            mask_12_scale = fn.resize(mask_12, scale.tolist())
+            # mask_12_idx = (~mask_12_scale).nonzero()  # [B, H, W]
+            mask_12_flat = mask_12_scale.view(mask_12_scale.shape[0], -1)  # [B, HW]
+
+            random_ids = torch.tensor(np.random.permutation((scale[0] * scale[1]).item()),
+                                      dtype=torch.long, device=device)
+            for im in range(B):
+                mask = ~mask_12_flat[im]
+                for i in range(2):
+                    idxs = idx_random[i][im]
+                    patch_ids[s][i, im, idxs] = random_ids[mask][:len(idxs)][idxs]
+
+        patch_ids = [[pi[i] for pi in patch_ids] for i in range(2)]
+        return patch_ids, num_patches
+
+    def forward(self, feats, num_patches=64, patch_ids=None):
+        return_ids = []
+        return_feats = []
+        if self.use_mlp and not self.mlp_init:
+            self.create_mlp(feats)
+        for feat_id, feat in enumerate(feats):
+            B, C, H, W = feat.shape
+            feat_reshape = feat.permute(0, 2, 3, 1).flatten(1, 2)
+            if num_patches > 0:
+                if patch_ids is not None:
+                    patch_id = patch_ids[feat_id]
+                else:
+                    raise ValueError('Expecting Patch ids from BPs')
+                # patch_id = torch.tensor(patch_id, dtype=torch.long, device=feat.device)
+                x_sample = torch.zeros((B, num_patches, C), dtype=feat_reshape.dtype, device=feat_reshape.device)
+                for b, pid in enumerate(patch_id):
+                    x_sample[b] = feat_reshape[b, pid, :]
+                x_sample = x_sample.flatten(0, 1)
             else:
                 x_sample = feat_reshape
                 patch_id = []
