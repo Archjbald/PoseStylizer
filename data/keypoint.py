@@ -33,18 +33,20 @@ class KeyDataset(BaseDataset):
         print('Loading data pairs finished ...')
 
     def __getitem__(self, index):
-        self.opt.random = True
+        # self.opt.random = True
         if self.opt.phase == 'train' or self.opt.random:
             index = random.randint(0, self.size - 1)
 
         P1_name, P2_name = self.pairs[index]
 
+        """
         # while 'Transpolis' not in P1_name and 'Laure' not in P1_name and 'Chama' not in P1_name:
         while 'Transpolis' in P1_name or 'Laure' in P1_name or 'Chama' in P1_name:
             if self.opt.phase == 'train' or self.opt.random:
                 index = random.randint(0, self.size - 1)
 
             P1_name, P2_name = self.pairs[index]
+        """
 
         P1_path = os.path.join(self.dir_P, P1_name)  # person 1
         BP1_path = os.path.join(self.dir_K, P1_name + '.npy')  # bone of person 1
