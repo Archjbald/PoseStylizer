@@ -285,7 +285,7 @@ class Model(nn.Module):
             feats.append(psf)
 
         if encode_only:
-            return feats
+            return feats[:4]
 
             # up
         ptf = nn.functional.interpolate(bpt, size=(psf.shape[2], psf.shape[3]), mode='bilinear', align_corners=False)
