@@ -479,6 +479,8 @@ class PatchSamplePoseF(nn.Module):
             for i, kps in enumerate([kps_1, kps_2]):
                 kp = kps[v_12[:, 0], v_12[:, 1]]
                 kp = (kp * ratio[None, :]).round().type(torch.int)
+                for d, dd in enumerate((h, w)):
+                    kp[:, d][kp[:, d] >= dd] = dd - 1
                 coords = torch.stack([v_12[:, 0], v_12[:, 1], kp[:, 0], kp[:, 1]], dim=1)
                 for coord in coords:
                     patch_id[i, coord[0], coord[1] * patch_size:(coord[1] + 1) * patch_size] = idx_patches[
