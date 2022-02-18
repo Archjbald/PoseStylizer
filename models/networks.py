@@ -506,7 +506,11 @@ class PatchSamplePoseF(nn.Module):
                 mask = ~mask_12_flat[im]
                 for i in range(2):
                     idxs = idx_random[i][im]
-                    patch_ids[s][i, im, idxs] = random_ids[mask][:len(idxs)][idxs]
+                    try:
+                        patch_ids[s][i, im, idxs] = random_ids[mask][:len(idxs)][idxs]
+                    except IndexError as err:
+                        print('***', bp1.shape, num_patches, patch_ids[s].shape, random_ids[mask].shape, len(idxs))
+                        raise err
 
         patch_ids = [[pi[i] for pi in patch_ids] for i in range(2)]
         return patch_ids, num_patches
