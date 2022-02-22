@@ -103,7 +103,7 @@ def extend_dataset(img_dir, annotations_path, save_path):
         anno = anno.transpose().tolist()
         text_annots.append(':'.join([name] + [str(an) for an in anno]))
 
-    with open(annotations_path.replace('.csv', '_extand.csv'), 'w') as f:
+    with open(annotations_path.replace('.csv', '_extend.csv'), 'w') as f:
         f.write('\n'.join(text_annots))
     return None
 
