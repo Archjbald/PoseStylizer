@@ -97,7 +97,6 @@ def extend_dataset(img_dir, annotations_path, save_path):
         pose = cords_to_map(kp_array, img.size[::-1], sigma=12)
         np.save(file_name, pose)
         new_annotations[name] = kp_array
-        break
 
     text_annots = ['name:keypoints_y:keypoints_x']
     for name, anno in new_annotations.items():
