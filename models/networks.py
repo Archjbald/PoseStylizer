@@ -404,31 +404,7 @@ class PatchSampleF(nn.Module):
         return return_feats, return_ids
 
 
-class PatchSamplePoseF(nn.Module):
-    def __init__(self, use_mlp=False, init_type='normal', init_gain=0.02, nc=256, gpu_ids=[]):
-        # potential issues: currently, we use the same patch_ids for multiple images in the batch
-        super(PatchSamplePoseF, self).__init__()
-        self.l2norm = Normalize(2)
-        self.use_mlp = use_mlp
-        self.nc = nc  # hard-coded
-        self.mlp_init = False
-        self.init_type = init_type
-        self.init_gain = init_gain
-        self.gpu_ids = gpu_ids
-
-    def create_mlp(self, feats):
-        for mlp_id, feat in enumerate(feats):
-            input_nc = feat.shape[1]
-            mlp = nn.Sequential(*[nn.Linear(input_nc, self.nc), nn.ReLU(), nn.Linear(self.nc, self.nc)])
-            if len(self.gpu_ids) > 0:
-                mlp.cuda()
-            setattr(self, 'mlp_%d' % mlp_id, mlp)
-        if len(self.gpu_ids) > 0:
-            assert (torch.cuda.is_available())
-            self.to(self.gpu_ids[0])
-        init_weights(self, self.init_type)
-        self.mlp_init = True
-
+class PatchSamplePoseF(PatchSampleF):
     @staticmethod
     def get_ids_kps(bp1, bp2, scales, num_patches=64):
         """
@@ -453,13 +429,8 @@ class PatchSamplePoseF(nn.Module):
             print('Not enough patches for CUT pose, setting to ', min_num_p)
             num_patches = min_num_p
 
-        v_1, kps_1 = bp1.view(*bp1.shape[:-2], -1).max(dim=-1)
-        kps_1 = torch.stack((kps_1.div(W, rounding_mode='trunc'), kps_1 % W), -1)
-        v_1 = v_1 > 0.1
-
-        v_2, kps_2 = bp2.view(*bp2.shape[:-2], -1).max(dim=-1)
-        kps_2 = torch.stack((kps_2.div(W, rounding_mode='trunc'), kps_2 % W), -1)
-        v_2 = v_2 > 0.1
+        kps_1, v_1 = get_kps(bp1, W)
+        kps_2, v_2 = get_kps(bp2, W)
 
         v_12 = (v_1 * v_2).nonzero()
         ratios = scales / torch.tensor([H, W], device=device)
@@ -511,7 +482,8 @@ class PatchSamplePoseF(nn.Module):
                     try:
                         patch_ids[s][i, im, idxs] = random_ids[mask][:len(idxs)][idxs]
                     except IndexError as err:
-                        print('***', bp1.shape, s, scales, patch_ids[s].shape, random_ids.shape, mask.sum(), random_ids[mask].shape, len(idxs))
+                        print('***', bp1.shape, s, scales, patch_ids[s].shape, random_ids.shape, mask.sum(),
+                              random_ids[mask].shape, len(idxs))
                         raise err
 
         patch_ids = [[pi[i] for pi in patch_ids] for i in range(2)]
@@ -548,3 +520,11 @@ class PatchSamplePoseF(nn.Module):
                 x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
             return_feats.append(x_sample)
         return return_feats, return_ids
+
+
+def get_kps(bp, w):
+    v, kps = bp.view(*bp.shape[:-2], -1).max(dim=-1)
+    kps = torch.stack((kps.div(w, rounding_mode='trunc'), kps % w), -1)
+    v = v > 0.1
+
+    return kps, v

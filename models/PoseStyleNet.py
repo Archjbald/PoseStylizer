@@ -87,8 +87,9 @@ class TransferModel(BaseModel):
         print('---------- Networks initialized -------------')
 
     def set_input(self, input):
-        self.input_P1, self.input_BP1 = input['P1'], input['BP1']
-        self.input_P2, self.input_BP2 = input['P2'], input['BP2']
+        nbj = self.opt.nb_joints
+        self.input_P1, self.input_BP1 = input['P1'], input['BP1'][:, :nbj]
+        self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :nbj]
         if self.opt.dataset_mode in ['keypoint_segmentation']:
             self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]

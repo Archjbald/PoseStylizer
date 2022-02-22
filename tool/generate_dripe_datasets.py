@@ -16,6 +16,8 @@ IMG_DIR = f'{DRIPE_PATH}/images'
 
 CROP = False
 
+DEBUG = True
+
 
 # Coco to CSV
 
@@ -165,16 +167,17 @@ def coco_to_csv(coco_json, set_name):
         ))
         if CROP:
             img = crop_img(img, crop_ratio, crop_box)
-            img.save(os.path.join(IMG_DIR, images[image_id]))
+            if not DEBUG:
+                img.save(os.path.join(IMG_DIR, images[image_id]))
 
     pairs = make_pairs(images)
 
-    with open(os.path.join(DRIPE_PATH, f'dripe-pairs-{set_name}.csv'), 'w') as f:
-        f.write('from,to\n' + '\n'.join(','.join(p) for p in pairs))
-    with open(os.path.join(DRIPE_PATH, f'dripe-annotation-{set_name}.csv'), 'w') as f:
-        f.write('name:keypoints_y:keypoints_x\n' + '\n'.join(': '.join(str(a) for a in an) for an in csv_annots))
+    if not DEBUG:
+        with open(os.path.join(DRIPE_PATH, f'dripe-pairs-{set_name}.csv'), 'w') as f:
+            f.write('from,to\n' + '\n'.join(','.join(p) for p in pairs))
+        with open(os.path.join(DRIPE_PATH, f'dripe-annotation-{set_name}.csv'), 'w') as f:
+            f.write('name:keypoints_y:keypoints_x\n' + '\n'.join(': '.join(str(a) for a in an) for an in csv_annots))
 
- 
 
 def load_pose_cords_from_strings(y_str, x_str):
     y_cords = json.loads(y_str)
@@ -205,7 +208,8 @@ def compute_pose(annotations_file, savePath):
         kp_array = load_pose_cords_from_strings(row.keypoints_y, row.keypoints_x)
         img = Image.open(img_path)
         pose = cords_to_map(kp_array, img.size[::-1], sigma=12)
-        np.save(file_name, pose)
+        if not DEBUG:
+            np.save(file_name, pose)
 
 
 def generate_set(set_name):

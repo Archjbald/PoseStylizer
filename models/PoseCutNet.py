@@ -141,13 +141,14 @@ class TransferCUTModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
+        nbj = self.opt.nb_joints
 
-        G_input = [self.input_P1, self.input_BP1, self.input_BP2]
+        G_input = [self.input_P1[:, :nbj], self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]]
         if self.opt.nce_idt and self.opt.isTrain:
             G_input = [
                 torch.cat((self.input_P1, self.input_P2), dim=0),
-                torch.cat((self.input_BP1, self.input_BP2), dim=0),
-                torch.cat((self.input_BP1, self.input_BP2), dim=0),
+                torch.cat((self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]), dim=0),
+                torch.cat((self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]), dim=0),
             ]
 
         if self.opt.dataset_mode == 'keypoint_segmentation':
@@ -179,8 +180,9 @@ class TransferCUTModel(BaseModel):
 
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):
-        real_PB = torch.cat((self.input_P2, self.input_BP2), 1)
-        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2), 1).data)
+        nbj = self.opt.nb_joints
+        real_PB = torch.cat((self.input_P2, self.input_BP2[:, :nbj]), 1)
+        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2[:, :nbj]), 1).data)
         loss_D_PB = self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
         self.loss_D_PB = loss_D_PB.item()
 
@@ -192,8 +194,9 @@ class TransferCUTModel(BaseModel):
         self.loss_D_PP = loss_D_PP.item()
 
     def backward_G(self, backward=True):
+        nbj = self.opt.nb_joints
         if self.opt.with_D_PB:
-            pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
+            pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2[:, :nbj]), 1))
             self.loss_G_GAN_PB = self.criterionGAN(pred_fake_PB, True)
 
         if self.opt.with_D_PP:
@@ -319,12 +322,13 @@ class TransferCUTModel(BaseModel):
         return util.tensor2im(self.fake_P2.data)
 
     def get_current_visuals(self):
+        nbj = self.opt.nb_joints
         height, width = self.input_P1.size(2), self.input_P1.size(3)
         input_P1 = util.tensor2im(self.input_P1.data)
         input_P2 = util.tensor2im(self.input_P2.data)
 
-        input_BP1 = util.draw_pose_from_map(self.input_BP1.data)[0]
-        input_BP2 = util.draw_pose_from_map(self.input_BP2.data)[0]
+        input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
+        input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
 
         fake_P2 = util.tensor2im(self.fake_P2.data)
         vis = np.zeros((height, width * 5, 3)).astype(np.uint8)  # h, w, c
