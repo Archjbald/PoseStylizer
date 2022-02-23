@@ -276,6 +276,7 @@ class Model(nn.Module):
 
         # in-node
         psf = self.psf_down(ps)
+        print(ps.shape, bps.shape)
         bps = self.bps_down(bps)
 
         feats = [ps, psf]
