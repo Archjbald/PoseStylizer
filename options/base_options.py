@@ -107,8 +107,6 @@ class BaseOptions():
                 self.opt.gpu_ids.append(id)
 
         args = vars(self.opt)
-        if self.opt.extend:
-            self.opt.nb_joints = 27
 
         # Set default parameters for CUT and FastCUT
         if self.opt.CUT_mode.lower() == "cut":

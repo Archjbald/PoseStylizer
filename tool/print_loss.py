@@ -8,6 +8,9 @@ weights = {
     'pair_GANloss': 1,
     'origin_L1': 1,
     'perceptual': 1,
+    'loss_NCE': 1,
+    'loss_NCE_both': 1,
+    'loss_NCE_Y': 1,
 }
 
 def print_loss(log_path, mode='train'):
@@ -56,5 +59,5 @@ def print_loss(log_path, mode='train'):
     return
 
 
-LOG_PATH = 'logs/draiver_med/loss_log.txt'
+LOG_PATH = 'logs/fashion_cut/loss_log.txt'
 print_loss(LOG_PATH, mode='train')
