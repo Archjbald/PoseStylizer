@@ -141,7 +141,7 @@ class TransferCUTModel(BaseModel):
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
-        nbj = self.opt.nb_joints
+        nbj = self.opt.BP_input_nc
 
         G_input = [self.input_P1[:, :nbj], self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]]
         if self.opt.nce_idt and self.opt.isTrain:
@@ -180,7 +180,7 @@ class TransferCUTModel(BaseModel):
 
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):
-        nbj = self.opt.nb_joints
+        nbj = self.opt.BP_input_nc
         real_PB = torch.cat((self.input_P2, self.input_BP2[:, :nbj]), 1)
         fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2[:, :nbj]), 1).data)
         loss_D_PB = self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
@@ -194,7 +194,7 @@ class TransferCUTModel(BaseModel):
         self.loss_D_PP = loss_D_PP.item()
 
     def backward_G(self, backward=True):
-        nbj = self.opt.nb_joints
+        nbj = self.opt.BP_input_nc
         if self.opt.with_D_PB:
             pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2[:, :nbj]), 1))
             self.loss_G_GAN_PB = self.criterionGAN(pred_fake_PB, True)
@@ -322,7 +322,7 @@ class TransferCUTModel(BaseModel):
         return util.tensor2im(self.fake_P2.data)
 
     def get_current_visuals(self):
-        nbj = self.opt.nb_joints
+        nbj = self.opt.BP_input_nc
         height, width = self.input_P1.size(2), self.input_P1.size(3)
         input_P1 = util.tensor2im(self.input_P1.data)
         input_P2 = util.tensor2im(self.input_P2.data)

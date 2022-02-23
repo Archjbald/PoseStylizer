@@ -30,7 +30,6 @@ class BaseOptions():
         self.parser.add_argument('--random', action='store_true', help='if true, randomly shuffle input images')
         self.parser.add_argument('--shuffle', action='store_true', help='if true, shuffle actors for training')
         self.parser.add_argument('--extend', action='store_true', help='use extended version of datasets (27 joints)')
-        self.parser.add_argument('--nb_joints', default=18, type=int, help='# nb of joints used for generator inference')
 
         self.parser.add_argument('--model', type=str, default='', help='chooses which model to use')
         self.parser.add_argument('--nThreads', default=2, type=int, help='# threads for loading data')
@@ -107,6 +106,8 @@ class BaseOptions():
                 self.opt.gpu_ids.append(id)
 
         args = vars(self.opt)
+        if self.opt.extend:
+            self.opt.BP_input_nc = 27
 
         # Set default parameters for CUT and FastCUT
         if self.opt.CUT_mode.lower() == "cut":
