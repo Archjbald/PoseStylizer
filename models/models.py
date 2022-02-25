@@ -8,6 +8,9 @@ def create_model(opt):
         if opt.backward == 'cut':
             from .PoseCutNet import TransferCUTModel
             model = TransferCUTModel()
+        elif opt.backward == 'cycle':
+            from .PoseCycleNet import TransferCycleModel
+            model = TransferCycleModel()
         else:
             from .PoseStyleNet import TransferModel
             model = TransferModel()

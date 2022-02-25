@@ -443,8 +443,10 @@ class PatchSamplePoseF(PatchSampleF):
             # Keypoint patches
             h, w = scale.tolist()
             idx = torch.arange(0, h * w).view(h, w)
-            idx_pad = F.pad(idx, (1, 1, 1, 1), value=-1)
-            idx_patches = idx_pad.unfold(0, 3, 1).unfold(1, 3, 1).contiguous().view(h, w, -1)
+            pad_x = patch_shape[0] // 2
+            pad_y = patch_shape[1] // 2
+            idx_pad = F.pad(idx, (pad_y, pad_y, pad_x, pad_x), value=-1)
+            idx_patches = idx_pad.unfold(0, patch_shape[0], 1).unfold(1, patch_shape[1], 1).contiguous().view(h, w, -1)
 
             ratio = ratios[s]
             for i, kps in enumerate([kps_1, kps_2]):

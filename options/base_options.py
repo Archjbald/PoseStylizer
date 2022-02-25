@@ -54,7 +54,7 @@ class BaseOptions():
                                  help='network initialization [normal|xavier|kaiming|orthogonal]')
 
         self.parser.add_argument('--P_input_nc', type=int, default=3, help='# of input image channels')
-        self.parser.add_argument('--BP_input_nc', type=int, default=1, help='# of input image channels')
+        self.parser.add_argument('--BP_input_nc', type=int, default=18, help='# of input image channels')
         self.parser.add_argument('--padding_type', type=str, default='reflect', help='# of input image channels')
         self.parser.add_argument('--pairLst', type=str, default='', help='market pairs')
 
@@ -68,7 +68,7 @@ class BaseOptions():
 
         self.initialized = True
         # CUT options
-        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut'],
+        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut', 'cycle'],
                                  help='choose between classic APS or CUT backward method for generator')
         self.parser.add_argument('--CUT_mode', type=str, default="CUT", choices='(CUT, cut, FastCUT, fastcut)')
 
@@ -76,8 +76,9 @@ class BaseOptions():
                                  help='scaling factor for normal, xavier and orthogonal.')
         self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
 
-        self.parser.add_argument('--nce_idt', type=bool, default=True,
-                                 help='use NCE loss for identity mapping: NCE(G(Y), Y))')
+        self.parser.add_argument('--no_nce_idt', action='store_false',
+                                 help='not use NCE loss for identity mapping: NCE(G(Y), Y))')
+
         self.parser.add_argument('--nce_layers', type=str, default='0,4,8,12,16',
                                  help='compute NCE loss on which layers')
         self.parser.add_argument('--nce_includes_all_negatives_from_minibatch', action='store_true',
@@ -89,6 +90,10 @@ class BaseOptions():
         self.parser.add_argument('--num_patches', type=int, default=256, help='number of patches per layer')
         self.parser.add_argument('--flip_equivariance', action='store_true',
                                  help="Enforce flip-equivariance as additional regularization. It's used by FastCUT, but not CUT")
+
+        # Cycle
+        self.parser.add_argument('--lambda_identity', type=float, default=0.5,
+                                 help='the "identity preservation loss"')
 
         self.parser.set_defaults(pool_size=0)
 
@@ -111,10 +116,10 @@ class BaseOptions():
 
         # Set default parameters for CUT and FastCUT
         if self.opt.CUT_mode.lower() == "cut":
-            self.parser.set_defaults(nce_idt=True, lambda_NCE=1.0)
+            self.parser.set_defaults(no_nce_idt=False, lambda_NCE=1.0)
         elif self.opt.CUT_mode.lower() == "fastcut":
             self.parser.set_defaults(
-                nce_idt=False, lambda_NCE=10.0, flip_equivariance=True,
+                no_nce_idt=True, lambda_NCE=10.0, flip_equivariance=True,
                 n_epochs=150, n_epochs_decay=50
             )
         else:
