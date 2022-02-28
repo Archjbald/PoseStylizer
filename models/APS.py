@@ -144,13 +144,18 @@ class DownBlock(nn.Module):
         return nn.Sequential(*conv_block_down), nn.Sequential(*conv_block)
 
     def forward(self, x1, x2):
+        print('*' * 20)
+        print(x1.shape, x2.shape)
+
         x1 = self.conv_block_down_stream1(x1)
         x2 = self.conv_block_down_stream2(x2)
 
         x1_out = self.conv_block_stream1(x1)
         x2_out = self.conv_block_stream2(x2)
 
+        print(x1_out.shape, x2_out.shape)
         att = torch.sigmoid(x2_out)
+        print(x1_out.shape, att.shape)
         x1_out = x1_out * att
         x1_out = x1_out + x1  # residual connection
 
