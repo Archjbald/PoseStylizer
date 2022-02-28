@@ -303,17 +303,18 @@ class Model(nn.Module):
         i = -1
         for up_block_fg, up_block_full in zip(self.up_blocks_fg, self.up_blocks_full):
             i += 1
+            print('####### Up ', i)
             bpt_down = nn.functional.interpolate(bpt, size=(ptf.shape[2], ptf.shape[3]), mode='bilinear',
                                                  align_corners=False)
             print("Up ", ptf.shape, bpt_down.shape, psf.shape)
             ptf = up_block_fg(ptf, bpt_down, psf)
+            print("Up out ", ptf.shape)
             if flag_first_layer:
                 pt = ptf
                 flag_first_layer = False
             else:
                 pt = torch.cat((pt, ptf), 1)
             pt = up_block_full(pt)
-            print('####### Up ', i)
             print(pt.shape)
 
         # out_node
