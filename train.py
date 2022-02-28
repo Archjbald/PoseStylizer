@@ -84,6 +84,8 @@ def train(opt, model, train_dataset, val_dataset):
                 model.save('latest', epoch, total_steps)
 
             print("Free memory: ", get_gpu_memory())
+            print("params: ",  sum([param.nelement() * param.element_size() for param in model.parameters()]))
+            print("bufs: ", sum([buf.nelement() * buf.element_size() for buf in model.buffers()]))
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
