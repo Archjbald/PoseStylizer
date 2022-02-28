@@ -311,6 +311,8 @@ class Model(nn.Module):
             else:
                 pt = torch.cat((pt, ptf), 1)
             pt = up_block_full(pt)
+            print('####### Up ', i)
+            print(pt.shape)
 
         # out_node
         pt = torch.cat((pt, ptf), 1)
