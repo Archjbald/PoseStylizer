@@ -6,6 +6,7 @@ import inspect, re
 import numpy as np
 import os
 import collections
+import subprocess as sp
 
 from skimage.draw import disk, line_aa, polygon
 
@@ -175,3 +176,11 @@ def avg_dic(old_dic, new_dic, n_iter):
             new_dic[k] = (v * (n_iter - 1) + new_dic[k]) / n_iter
 
     return new_dic
+
+
+def get_gpu_memory():
+    command = "nvidia-smi --query-gpu=memory.free --format=csv"
+    memory_free_info = sp.check_output(command.split()).decode('ascii').split('\n')[:-1][1:]
+    memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
+    return memory_free_values
+

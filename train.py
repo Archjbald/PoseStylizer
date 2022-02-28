@@ -11,8 +11,9 @@ from options.train_options import TrainOptions
 from data.data_loader import CreateDataLoader
 from models.models import create_model
 from util.visualizer import Visualizer
-from util.util import avg_dic
+from util.util import avg_dic, get_gpu_memory
 from test import set_test_opt
+
 
 
 def train(opt, model, train_dataset, val_dataset):
@@ -81,6 +82,8 @@ def train(opt, model, train_dataset, val_dataset):
                 print('saving the latest model (epoch %d, total_steps %d)' %
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
+
+            print("Free memory: ", get_gpu_memory())
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
