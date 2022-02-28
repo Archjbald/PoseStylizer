@@ -298,7 +298,6 @@ class Model(nn.Module):
 
             # up
         ptf = nn.functional.interpolate(bpt, size=(psf.shape[2], psf.shape[3]), mode='bilinear', align_corners=False)
-        print("Ptf: ", ptf.shape)
 
         flag_first_layer = True
         i = -1
@@ -306,9 +305,8 @@ class Model(nn.Module):
             i += 1
             bpt_down = nn.functional.interpolate(bpt, size=(ptf.shape[2], ptf.shape[3]), mode='bilinear',
                                                  align_corners=False)
-            print('Bpdown ', i, bpt_down.shape)
+            print("Up ", ptf.shape, bpt_down.shape, psf.shape)
             ptf = up_block_fg(ptf, bpt_down, psf)
-            print("Ptf: ", i,  ptf.shape)
             if flag_first_layer:
                 pt = ptf
                 flag_first_layer = False
