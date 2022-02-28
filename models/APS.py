@@ -90,18 +90,26 @@ class UpBlock(nn.Module):
             x = torch.cat((pt, bpt), 1)
         else:
             x = pt
+        print(0, x.shape)
         x = self.image_up_sample(x)
+        print(1, x.shape)
         residual = x
         y = self.patchnorm1(x, stat, norm="InstanceNorm")
+        print(2, y.shape)
         y = self.conv1(y)
+        print(3, y.shape)
         y = self.patchnorm2(y, stat, norm="InstanceNorm")
+        print(4, y.shape)
         bpt_upsample = nn.functional.interpolate(bpt, size=(y.shape[2], y.shape[3]), mode='bilinear',
                                                  align_corners=False)
+        print(5, bpt_upsample.shape)
         att = torch.sigmoid(self.att(torch.cat((y, bpt_upsample), 1)))
         y = y * att
         y = y + residual
+        print(6, y.shape)
         if self.use_dropout:
             y = self.dropout(y)
+        print(7, y.shape)
         return y
 
 
