@@ -279,6 +279,9 @@ class Model(nn.Module):
         # Person Source, Backbone Person Source, Backbone Person Target, Mask Person Source
         ps, bps, bpt = input
 
+        print('%' * 20)
+        print(ps.shape, bps.shape, bpt.shape)
+
         # in-node
         psf = self.psf_down(ps)
         bps = self.bps_down(bps)
