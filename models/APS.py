@@ -225,7 +225,7 @@ class Model(nn.Module):
         mult = 2 ** n_downsampling
         up_blocks_fg = []
         for i in range(n_downsampling):
-            if opt.dataset == 'fashion' and i == n_downsampling - 4:
+            if opt.dataset == 'fashion' and i == n_downsampling - 4 and n_downsampling > 4:
                 # handle feat width 6->11->22 in fashion dataset image generation
                 padding = (1, 2)
             else:
