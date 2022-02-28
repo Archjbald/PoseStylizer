@@ -90,26 +90,18 @@ class UpBlock(nn.Module):
             x = torch.cat((pt, bpt), 1)
         else:
             x = pt
-        print(0, x.shape)
         x = self.image_up_sample(x)
-        print(1, x.shape)
         residual = x
         y = self.patchnorm1(x, stat, norm="InstanceNorm")
-        print(2, y.shape)
         y = self.conv1(y)
-        print(3, y.shape)
         y = self.patchnorm2(y, stat, norm="InstanceNorm")
-        print(4, y.shape)
         bpt_upsample = nn.functional.interpolate(bpt, size=(y.shape[2], y.shape[3]), mode='bilinear',
                                                  align_corners=False)
-        print(5, bpt_upsample.shape)
         att = torch.sigmoid(self.att(torch.cat((y, bpt_upsample), 1)))
         y = y * att
         y = y + residual
-        print(6, y.shape)
         if self.use_dropout:
             y = self.dropout(y)
-        print(7, y.shape)
         return y
 
 
@@ -152,8 +144,6 @@ class DownBlock(nn.Module):
         return nn.Sequential(*conv_block_down), nn.Sequential(*conv_block)
 
     def forward(self, x1, x2):
-        print('*' * 20)
-        print(x1.shape, x2.shape)
 
         x1 = self.conv_block_down_stream1(x1)
         x2 = self.conv_block_down_stream2(x2)
@@ -161,9 +151,7 @@ class DownBlock(nn.Module):
         x1_out = self.conv_block_stream1(x1)
         x2_out = self.conv_block_stream2(x2)
 
-        print(x1_out.shape, x2_out.shape)
         att = torch.sigmoid(x2_out)
-        print(x1_out.shape, att.shape)
         x1_out = x1_out * att
         x1_out = x1_out + x1  # residual connection
 
@@ -287,9 +275,6 @@ class Model(nn.Module):
         # Person Source, Backbone Person Source, Backbone Person Target, Mask Person Source
         ps, bps, bpt = input
 
-        print('%' * 20)
-        print(ps.shape, bps.shape, bpt.shape)
-
         # in-node
         psf = self.psf_down(ps)
         bps = self.bps_down(bps)
@@ -297,7 +282,6 @@ class Model(nn.Module):
         feats = [ps, psf]
         # down
         for i, down_block in enumerate(self.down_blocks):
-            print('####### Down ', i)
             psf, bps = down_block(psf, bps)
             feats.append(psf)
 
@@ -311,19 +295,15 @@ class Model(nn.Module):
         i = -1
         for up_block_fg, up_block_full in zip(self.up_blocks_fg, self.up_blocks_full):
             i += 1
-            print('####### Up ', i)
             bpt_down = nn.functional.interpolate(bpt, size=(ptf.shape[2], ptf.shape[3]), mode='bilinear',
                                                  align_corners=False)
-            print("Up ", ptf.shape, bpt_down.shape, psf.shape)
             ptf = up_block_fg(ptf, bpt_down, psf)
-            print("Up out ", ptf.shape)
             if flag_first_layer:
                 pt = ptf
                 flag_first_layer = False
             else:
                 pt = torch.cat((pt, ptf), 1)
             pt = up_block_full(pt)
-            print(pt.shape)
 
         # out_node
         pt = torch.cat((pt, ptf), 1)
