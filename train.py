@@ -1,9 +1,11 @@
 import time
 import numpy as np
 import os
+import sys
 import pickle
 from collections import OrderedDict
 from argparse import Namespace
+import gc
 
 import torch
 
@@ -13,6 +15,10 @@ from models.models import create_model
 from util.visualizer import Visualizer
 from util.util import avg_dic, get_gpu_memory
 from test import set_test_opt
+
+os.environ['GPU_DEBUG'] = '0'
+
+from util.gpu_profile import gpu_profile
 
 
 def train(opt, model, train_dataset, val_dataset):
@@ -42,11 +48,17 @@ def train(opt, model, train_dataset, val_dataset):
         for scheduler in model.schedulers:
             scheduler.step()
 
+    with open('garbage.log', 'w') as f:
+        f.write(''.join(['='*10, 'Epoch 0', "="*10, '\n']))
+
     stat_errors = OrderedDict([('count', 0)])
     for epoch in range(epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         epoch_iter = 0
         for i, data in enumerate(train_dataset):
+            with open('garbage.log', 'a') as f:
+                f.write(''.join(['*' * 10, f'Iter {i}', "*" * 10, '\n']))
+
             if len(opt.gpu_ids) > 0:
                 torch.cuda.synchronize()
             iter_start_time = time.time()
@@ -82,10 +94,19 @@ def train(opt, model, train_dataset, val_dataset):
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
 
+            with open('garbage.log', 'a') as f:
+                for obj in gc.get_objects():
+                    try:
+                        if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                            f.write(f'{type(obj)}: {obj.size()}\n')
+                    except:
+                        pass
+
             print("Free memory: ", get_gpu_memory())
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                        isinstance(v, torch.Tensor)}
-            print("attribs: ", attribs)
+
+            return
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
@@ -143,4 +164,5 @@ def main():
 
 
 if __name__ == '__main__':
+    # sys.settrace(gpu_profile)
     main()
