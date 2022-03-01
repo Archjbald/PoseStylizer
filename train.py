@@ -97,6 +97,14 @@ def train(opt, model, train_dataset, val_dataset):
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                        isinstance(v, torch.Tensor)}
 
+            for n, t in model.named_parameters():
+                print(n, t.shape)
+
+            for m in [model, model.netG]:
+                for n, t in m.__dict__.items():
+                    if torch.is_tensor(t):
+                        print(n, t.shape)
+
             print(model)
             sys.exit(0)
 
