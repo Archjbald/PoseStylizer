@@ -11,7 +11,7 @@ import socket
 import os
 
 # different settings
-print_tensor_sizes = False
+print_tensor_sizes = True
 use_incremental = False
 
 if 'GPU_DEBUG' in os.environ:
