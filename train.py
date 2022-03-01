@@ -5,7 +5,6 @@ import sys
 import pickle
 from collections import OrderedDict
 from argparse import Namespace
-import gc
 
 import torch
 
@@ -13,7 +12,7 @@ from options.train_options import TrainOptions
 from data.data_loader import CreateDataLoader
 from models.models import create_model
 from util.visualizer import Visualizer
-from util.util import avg_dic, get_gpu_memory
+from util.util import avg_dic, debug_gpu_memory
 from test import set_test_opt
 
 
@@ -84,7 +83,6 @@ def train(opt, model, train_dataset, val_dataset):
                 else:
                     stat_errors[key] = current_errors[key]
 
-
             if total_steps % opt.print_freq == 0:
                 errors = model.get_current_errors()
                 t = time.time() - iter_start_time
@@ -96,32 +94,7 @@ def train(opt, model, train_dataset, val_dataset):
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
 
-            print("Free memory: ", get_gpu_memory())
-            attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
-                       isinstance(v, torch.Tensor)}
-
-            with open('garbage.log', 'a') as f:
-                for obj in gc.get_objects():
-                    try:
-                        if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
-                            f.write(f'{type(obj)}: {obj.size()}\n')
-                    except:
-                        pass
-
-                f.write('%' * 20)
-                for n, t in model.named_parameters():
-                    f.write(f'{n}: {t.shape}\n')
-
-                f.write('%' * 20)
-                for m in [model, model.netG]:
-                    for n, t in m.__dict__.items():
-                        if torch.is_tensor(t):
-                            f.write(f'{n}: {t.shape}\n')
-
-            """
-            if i < len(train_dataset) - 1:
-                model.cleanse()
-            """
+            # debug_gpu_memory(model)
 
             if i > 5:
                 sys.exit(0)
@@ -162,8 +135,6 @@ def train(opt, model, train_dataset, val_dataset):
                 val_errors = avg_dic(val_errors, iter_errors, v)
                 model.cleanse()
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
-
-        model.cleanse()
 
     model.update_learning_rate()
 

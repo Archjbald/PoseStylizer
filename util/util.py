@@ -7,6 +7,7 @@ import numpy as np
 import os
 import collections
 import subprocess as sp
+import gc
 
 from skimage.draw import disk, line_aa, polygon
 
@@ -184,3 +185,26 @@ def get_gpu_memory():
     memory_free_values = [int(x.split()[0]) for i, x in enumerate(memory_free_info)]
     return memory_free_values
 
+
+def debug_gpu_memory(model):
+    print("Free memory: ", get_gpu_memory())
+    attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
+               isinstance(v, torch.Tensor)}
+
+    with open('garbage.log', 'a') as f:
+        for obj in gc.get_objects():
+            try:
+                if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                    f.write(f'{type(obj)}: {obj.size()}\n')
+            except:
+                pass
+
+        f.write('%' * 20)
+        for n, t in model.named_parameters():
+            f.write(f'{n}: {t.shape}\n')
+
+        f.write('%' * 20)
+        for m in [model, model.netG]:
+            for n, t in m.__dict__.items():
+                if torch.is_tensor(t):
+                    f.write(f'{n}: {t.shape}\n')
