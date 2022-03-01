@@ -106,8 +106,6 @@ def train(opt, model, train_dataset, val_dataset):
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                        isinstance(v, torch.Tensor)}
 
-            return
-
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
             if not key == 'count':
