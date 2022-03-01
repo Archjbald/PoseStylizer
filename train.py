@@ -16,9 +16,8 @@ from util.visualizer import Visualizer
 from util.util import avg_dic, get_gpu_memory
 from test import set_test_opt
 
-os.environ['GPU_DEBUG'] = '0'
-
-from util.gpu_profile import gpu_profile
+# os.environ['GPU_DEBUG'] = '0'
+# from util.gpu_profile import gpu_profile
 
 
 def train(opt, model, train_dataset, val_dataset):
@@ -49,7 +48,7 @@ def train(opt, model, train_dataset, val_dataset):
             scheduler.step()
 
     with open('garbage.log', 'w') as f:
-        f.write(''.join(['='*10, 'Epoch 0', "="*10, '\n']))
+        f.write(''.join(['=' * 10, 'Epoch 0', "=" * 10, '\n']))
 
     stat_errors = OrderedDict([('count', 0)])
     for epoch in range(epoch_count, opt.niter + opt.niter_decay + 1):
@@ -94,6 +93,13 @@ def train(opt, model, train_dataset, val_dataset):
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
 
+            print("Free memory: ", get_gpu_memory())
+            attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
+                       isinstance(v, torch.Tensor)}
+
+            print(model)
+            sys.exit(0)
+
             with open('garbage.log', 'a') as f:
                 for obj in gc.get_objects():
                     try:
@@ -101,10 +107,6 @@ def train(opt, model, train_dataset, val_dataset):
                             f.write(f'{type(obj)}: {obj.size()}\n')
                     except:
                         pass
-
-            print("Free memory: ", get_gpu_memory())
-            attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
-                       isinstance(v, torch.Tensor)}
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
