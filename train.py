@@ -16,6 +16,7 @@ from util.visualizer import Visualizer
 from util.util import avg_dic, get_gpu_memory
 from test import set_test_opt
 
+
 # os.environ['GPU_DEBUG'] = '0'
 # from util.gpu_profile import gpu_profile
 
@@ -72,9 +73,8 @@ def train(opt, model, train_dataset, val_dataset):
 
             model.set_input(data)
 
-
             model.optimize_parameters()
-            """
+
             # stat errors
             current_errors = model.get_current_errors()
             stat_errors['count'] += 1
@@ -95,8 +95,6 @@ def train(opt, model, train_dataset, val_dataset):
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
 
-            """
-
             print("Free memory: ", get_gpu_memory())
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                        isinstance(v, torch.Tensor)}
@@ -109,7 +107,7 @@ def train(opt, model, train_dataset, val_dataset):
                     except:
                         pass
 
-                f.write('%'*20)
+                f.write('%' * 20)
                 for n, t in model.named_parameters():
                     f.write(f'{n}: {t.shape}\n')
 
