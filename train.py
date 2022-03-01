@@ -97,17 +97,6 @@ def train(opt, model, train_dataset, val_dataset):
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                        isinstance(v, torch.Tensor)}
 
-            for n, t in model.named_parameters():
-                print(n, t.shape)
-
-            for m in [model, model.netG]:
-                for n, t in m.__dict__.items():
-                    if torch.is_tensor(t):
-                        print(n, t.shape)
-
-            print(model)
-            sys.exit(0)
-
             with open('garbage.log', 'a') as f:
                 for obj in gc.get_objects():
                     try:
@@ -115,6 +104,19 @@ def train(opt, model, train_dataset, val_dataset):
                             f.write(f'{type(obj)}: {obj.size()}\n')
                     except:
                         pass
+
+                f.write('%'*20)
+                for n, t in model.named_parameters():
+                    f.write(f'{n}: {t.shape}\n')
+
+                f.write('%' * 20)
+                for m in [model, model.netG]:
+                    for n, t in m.__dict__.items():
+                        if torch.is_tensor(t):
+                            f.write(f'{n}: {t.shape}\n')
+
+            if i:
+                sys.exit(0)
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
