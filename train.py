@@ -12,7 +12,7 @@ from options.train_options import TrainOptions
 from data.data_loader import CreateDataLoader
 from models.models import create_model
 from util.visualizer import Visualizer
-from util.util import avg_dic, debug_gpu_memory
+from util.util import avg_dic, debug_gpu_memory, get_gpu_memory
 from test import set_test_opt
 
 
@@ -95,6 +95,7 @@ def train(opt, model, train_dataset, val_dataset):
                 model.save('latest', epoch, total_steps)
 
             # debug_gpu_memory(model)
+            print(get_gpu_memory())
 
             if i > 5:
                 sys.exit(0)
