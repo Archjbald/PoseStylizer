@@ -75,7 +75,7 @@ def train(opt, model, train_dataset, val_dataset):
             model.optimize_parameters()
 
             # stat errors
-            """
+
             current_errors = model.get_current_errors()
             stat_errors['count'] += 1
             for key in current_errors.keys():
@@ -83,7 +83,7 @@ def train(opt, model, train_dataset, val_dataset):
                     stat_errors[key] += current_errors[key]
                 else:
                     stat_errors[key] = current_errors[key]
-            """
+
 
             if total_steps % opt.print_freq == 0:
                 errors = model.get_current_errors()
