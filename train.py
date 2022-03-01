@@ -71,8 +71,10 @@ def train(opt, model, train_dataset, val_dataset):
                 model.parallelize()
 
             model.set_input(data)
-            model.optimize_parameters()
 
+
+            model.optimize_parameters()
+            """
             # stat errors
             current_errors = model.get_current_errors()
             stat_errors['count'] += 1
@@ -92,6 +94,8 @@ def train(opt, model, train_dataset, val_dataset):
                 print('saving the latest model (epoch %d, total_steps %d)' %
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
+
+            """
 
             print("Free memory: ", get_gpu_memory())
             attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
@@ -115,7 +119,12 @@ def train(opt, model, train_dataset, val_dataset):
                         if torch.is_tensor(t):
                             f.write(f'{n}: {t.shape}\n')
 
-            if i:
+            """
+            if i < len(train_dataset) - 1:
+                model.cleanse()
+            """
+
+            if i > 5:
                 sys.exit(0)
 
         t = time.time() - iter_start_time
@@ -152,7 +161,10 @@ def train(opt, model, train_dataset, val_dataset):
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
+                model.cleanse()
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
+
+        model.cleanse()
 
     model.update_learning_rate()
 

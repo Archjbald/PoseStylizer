@@ -192,10 +192,12 @@ class TransferCycleModel(BaseModel):
         # forward
         self.forward()  # compute fake images and reconstruction images.
         # G  # Ds require no gradients when optimizing Gs
+        self.set_requires_grad([self.netD_PB, self.netD_PP], False)
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
         self.backward_G(backward=backward)  # calculate gradients for G_A and G_B
         self.optimizer_G.step()  # update G_A and G_B's weights
 
+        self.set_requires_grad([self.netD_PB, self.netD_PP], True)
         # D_P
         if self.opt.with_D_PP:
             for i in range(self.opt.DG_ratio):
@@ -219,8 +221,8 @@ class TransferCycleModel(BaseModel):
 
         ret_errors['G_1'] = self.loss_G_1
         ret_errors['G_2'] = self.loss_G_2
-        ret_errors['cycle_1'] = self.loss_cycle_1
-        ret_errors['cycle_2'] = self.loss_cycle_2
+        ret_errors['cycle_1'] = self.loss_cycle_1.item()
+        ret_errors['cycle_2'] = self.loss_cycle_2.item()
         return ret_errors
 
     def get_current_p2(self):
@@ -272,3 +274,18 @@ class TransferCycleModel(BaseModel):
             self.save_network(self.netD_PB, 'netD_PB', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PP:
             self.save_network(self.netD_PP, 'netD_PP', label, self.gpu_ids, epoch, total_steps)
+
+    def cleanse(self):
+        # output
+        del self.fake_P1, self.fake_P2, self.rec_1, self.rec_2
+
+        # loss G
+        del self.idt_1, self.loss_idt_1, self.idt_2, self.loss_idt_2
+        del self.loss_G_GAN_PB_1, self.loss_G_GAN_PP_1, self.loss_G_1
+        del self.loss_G_GAN_PB_2, self.loss_G_GAN_PP_2, self.loss_G_2
+        del self.loss_cycle_1, self.loss_cycle_2, self.loss_G
+
+        # loss D
+        del self.loss_D_PB, self.loss_D_PP
+
+        torch.cuda.empty_cache()
