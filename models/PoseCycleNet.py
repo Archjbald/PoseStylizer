@@ -106,9 +106,9 @@ class TransferCycleModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
-        self.rec_1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
+        self.rec_P1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
-        self.rec_2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
+        self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
 
     def test(self):
         with torch.no_grad():
@@ -164,11 +164,8 @@ class TransferCycleModel(BaseModel):
         self.loss_G_1 = 0
         self.loss_G_2 = 0
         if self.opt.with_D_PB:
-            # GAN loss D_A(G_A(A))
             self.loss_G_GAN_PB_1 = self.criterionGAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
             self.loss_G_1 += self.loss_G_GAN_PB_1
-
-            # GAN loss D_B(G_B(B))
             self.loss_G_GAN_PB_2 = self.criterionGAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
             self.loss_G_2 += self.loss_G_GAN_PB_2
 
@@ -179,9 +176,9 @@ class TransferCycleModel(BaseModel):
             self.loss_G_2 += self.loss_G_GAN_PP_2
 
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle_1 = self.criterionCycle(self.rec_1, self.input_P1) * lambda_A
+        self.loss_cycle_1 = self.criterionCycle(self.rec_P1, self.input_P1) * lambda_A
         # Backward cycle loss || G_A(G_B(B)) - B||
-        self.loss_cycle_2 = self.criterionCycle(self.rec_2, self.input_P2) * lambda_B
+        self.loss_cycle_2 = self.criterionCycle(self.rec_P2, self.input_P2) * lambda_B
         # combined loss and calculate gradients
         self.loss_G = self.loss_G_1 + self.loss_G_1 + self.loss_cycle_1 + self.loss_cycle_2 + self.loss_idt_1 + self.loss_idt_2
         if backward:
@@ -277,7 +274,7 @@ class TransferCycleModel(BaseModel):
 
     def cleanse(self):
         # output
-        del self.fake_P1, self.fake_P2, self.rec_1, self.rec_2
+        del self.fake_P1, self.fake_P2, self.rec_P1, self.rec_P2
 
         # loss G
         del self.idt_1, self.loss_idt_1, self.idt_2, self.loss_idt_2

@@ -3,8 +3,6 @@ def CreateDataLoader(opt):
     data_loader = CustomDatasetDataLoader()
     print(data_loader.name())
 
-    if opt.shuffle and not "shuffle" in opt.pairLst:
-        opt.pairLst = opt.pairLst.replace('.csv', '-shuffle.csv')
     if "shuffle" in opt.pairLst:
         opt.shuffle = True
 

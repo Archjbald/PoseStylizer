@@ -30,6 +30,7 @@ class BaseOptions():
         self.parser.add_argument('--random', action='store_true', help='if true, randomly shuffle input images')
         self.parser.add_argument('--shuffle', action='store_true', help='if true, shuffle actors for training')
         self.parser.add_argument('--extend', action='store_true', help='use extended version of datasets (27 joints)')
+        self.parser.add_argument('--debug', action='store_true', help='debug mode')
 
         self.parser.add_argument('--model', type=str, default='', help='chooses which model to use')
         self.parser.add_argument('--nThreads', default=2, type=int, help='# threads for loading data')
@@ -129,6 +130,12 @@ class BaseOptions():
         if not self.opt.pairLst:
             self.opt.pairLst = os.path.join(self.opt.dataroot,
                                             f'{self.opt.dataset}-pairs-{"train" if self.opt.isTrain else "test"}.csv')
+
+        if self.opt.shuffle and "shuffle" not in self.opt.pairLst:
+            self.opt.pairLst = self.opt.pairLst.replace('.csv', '-shuffle.csv')
+
+        # if self.opt.debug and "small" not in self.opt.pairLst:
+        #     self.opt.pairLst = self.opt.pairLst.replace('.csv', '-small.csv')
 
         # save to the disk
         expr_dir = os.path.join(self.opt.checkpoints_dir, self.opt.name)

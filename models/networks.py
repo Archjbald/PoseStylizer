@@ -406,28 +406,31 @@ class PatchSampleF(nn.Module):
 
 class PatchSamplePoseF(PatchSampleF):
     @staticmethod
-    def get_ids_kps(bp1, bp2, scales, num_patches=64):
+    def get_ids_kps(bp1, bp2, scales, patch_sizes, num_patches=64, in_mask=False):
         """
         Generate list of patch ids according to skeleton.
         Skeleton ids are shared across scales, random are not
         :param bp1: skeleton 1 (BxCxHxW)
         :param bp2: skeleton 2 (BxCxHxW)
         :param scales: shapes of each feature vector (FxBxCxHxW)
+        :param patch_sizes: sizes of patchs to extract
         :param num_patches: number of expected patches
         :return: list of ids per scales, num_patches
         """
         device = bp1.device
-        patch_shape = (3, 3)
-        patch_size = patch_shape[0] * patch_shape[1]
+        if len(patch_sizes) == 1:
+            patch_sizes = patch_sizes * len(scales)
+
+        assert len(patch_sizes) == len(scales), 'Wrong number of patch sizes'
+
+        patch_shapes = [(size, size) for size in patch_sizes]
+        patch_sizes = [shape[0] * shape[1] for shape in patch_shapes]
         # bp1 = torch.cat((bp1, bp1))
         # bp2 = torch.cat((bp2, bp2))
         assert bp1.shape == bp2.shape
         B, C, H, W = bp1.shape
 
-        min_num_p = patch_size * C
-        if num_patches < min_num_p:
-            print('Not enough patches for CUT pose, setting to ', min_num_p)
-            num_patches = min_num_p
+        num_patches = [max(size * C, num_patches) for size in patch_sizes]
 
         kps_1, v_1 = get_kps(bp1, W)
         kps_2, v_2 = get_kps(bp2, W)
@@ -436,17 +439,16 @@ class PatchSamplePoseF(PatchSampleF):
         ratios = scales / torch.tensor([H, W], device=device)
 
         patch_ids = []
-        patch_id_0 = -torch.ones((2, B, num_patches), dtype=torch.long, device=device)
         for s, scale in enumerate(scales):
-            patch_id = patch_id_0.clone()
+            patch_id = -torch.ones((2, B, num_patches[s]), dtype=torch.long, device=device)
 
             # Keypoint patches
             h, w = scale.tolist()
             idx = torch.arange(0, h * w).view(h, w)
-            pad_x = patch_shape[0] // 2
-            pad_y = patch_shape[1] // 2
+            pad_x = patch_shapes[s][0] // 2
+            pad_y = patch_shapes[s][1] // 2
             idx_pad = F.pad(idx, (pad_y, pad_y, pad_x, pad_x), value=-1)
-            idx_patches = idx_pad.unfold(0, patch_shape[0], 1).unfold(1, patch_shape[1], 1).contiguous().view(h, w, -1)
+            idx_patches = idx_pad.unfold(0, patch_shapes[s][0], 1).unfold(1, patch_shapes[s][1], 1).contiguous().view(h, w, -1)
 
             ratio = ratios[s]
             for i, kps in enumerate([kps_1, kps_2]):
@@ -456,14 +458,17 @@ class PatchSamplePoseF(PatchSampleF):
                     kp[:, d][kp[:, d] >= dd] = dd - 1
                 coords = torch.stack([v_12[:, 0], v_12[:, 1], kp[:, 0], kp[:, 1]], dim=1)
                 for coord in coords:
-                    patch_id[i, coord[0], coord[1] * patch_size:(coord[1] + 1) * patch_size] = idx_patches[
+                    patch_id[i, coord[0], coord[1] * patch_sizes[s]:(coord[1] + 1) * patch_sizes[s]] = idx_patches[
                         coord[-2], coord[-1]]
             patch_ids.append(patch_id)
 
         # Random Patches
-        mask_1 = bp1.sum(dim=1) > 0.1
-        mask_2 = bp2.sum(dim=1) > 0.1
-        mask_12 = mask_1 * mask_2
+        if not in_mask:
+            mask_1 = bp1.sum(dim=1) > 0.1
+            mask_2 = bp2.sum(dim=1) > 0.1
+            mask_12 = mask_1 * mask_2
+        else:
+            mask_12 = torch.zeros_like(bp1[:, 0]).type(torch.bool)
 
         for s, scale in enumerate(scales):
             # idx_random = (patch_ids[s] == -1).nonzero()  # [2, B, num_patch]
@@ -499,13 +504,14 @@ class PatchSamplePoseF(PatchSampleF):
         for feat_id, feat in enumerate(feats):
             B, C, H, W = feat.shape
             feat_reshape = feat.permute(0, 2, 3, 1).flatten(1, 2)
-            if num_patches > 0:
+            num_patch = num_patches[feat_id]
+            if num_patch > 0:
                 if patch_ids is not None:
                     patch_id = patch_ids[feat_id]
                 else:
                     raise ValueError('Expecting Patch ids from BPs')
                 # patch_id = torch.tensor(patch_id, dtype=torch.long, device=feat.device)
-                x_sample = torch.zeros((B, num_patches, C), dtype=feat_reshape.dtype, device=feat_reshape.device)
+                x_sample = torch.zeros((B, num_patch, C), dtype=feat_reshape.dtype, device=feat_reshape.device)
                 for b, pid in enumerate(patch_id):
                     x_sample[b] = feat_reshape[b, pid, :]
                 x_sample = x_sample.flatten(0, 1)
@@ -518,7 +524,7 @@ class PatchSamplePoseF(PatchSampleF):
             return_ids.append(patch_id)
             x_sample = self.l2norm(x_sample)
 
-            if num_patches == 0:
+            if num_patch == 0:
                 x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
             return_feats.append(x_sample)
         return return_feats, return_ids

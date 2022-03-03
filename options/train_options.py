@@ -59,6 +59,9 @@ class TrainOptions(BaseOptions):
 
         # CUT
         self.parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')
+        self.parser.add_argument('--patch_sizes', type=str, default='3',
+                                 help='compute NCE loss on which layers')
+        self.parser.add_argument('--in_mask', action='store_true', help='pick random patch in the body mask')
 
         self.isTrain = True
 
@@ -67,5 +70,7 @@ class TrainOptions(BaseOptions):
 
         if self.opt.epoch_size % self.opt.batchSize:
             self.opt.epoch_size = (self.opt.epoch_size // self.opt.batchSize + 1) * self.opt.batchSize
+
+        self.opt.patch_sizes = [int(k) for k in self.opt.patch_sizes.split(',')]
 
         return self.opt

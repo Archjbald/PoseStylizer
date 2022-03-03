@@ -204,13 +204,13 @@ class TransferCUTModel(BaseModel):
             self.loss_G_GAN_PP = self.criterionGAN(pred_fake_PP, True)
 
         if self.opt.with_D_PB:
-            pair_GANloss = self.loss_G_GAN_PB * self.opt.lambda_GAN
+            pair_GANloss = self.loss_G_GAN_PB * self.opt.lambda_A
             if self.opt.with_D_PP:
-                pair_GANloss += self.loss_G_GAN_PP * self.opt.lambda_GAN
+                pair_GANloss += self.loss_G_GAN_PP * self.opt.lambda_A
                 pair_GANloss = pair_GANloss / 2
         else:
             if self.opt.with_D_PP:
-                pair_GANloss = self.loss_G_GAN_PP * self.opt.lambda_GAN
+                pair_GANloss = self.loss_G_GAN_PP * self.opt.lambda_A
 
         # First, G(A) should fake the discriminator
         if self.opt.lambda_NCE > 0.0:
@@ -281,17 +281,22 @@ class TransferCUTModel(BaseModel):
 
         if isinstance(self.netF, torch.nn.DataParallel):
             sample_ids, num_patches = self.netF.module.get_ids_kps(self.input_BP1, self.input_BP2, scales,
-                                                                   num_patches=self.opt.num_patches)
+                                                                   patch_sizes=self.opt.patch_sizes,
+                                                                   num_patches=self.opt.num_patches,
+                                                                   in_mask=self.opt.in_mask)
         else:
             sample_ids, num_patches = self.netF.get_ids_kps(self.input_BP1, self.input_BP2, scales,
-                                                            num_patches=self.opt.num_patches)
+                                                            patch_sizes=self.opt.patch_sizes,
+                                                            num_patches=self.opt.num_patches,
+                                                            in_mask=self.opt.in_mask)
 
         self.opt.num_patches = num_patches
         feat_src_pool, _ = self.netF(feat_src, num_patches=self.opt.num_patches, patch_ids=sample_ids[0])
         feat_tgt_pool, _ = self.netF(feat_tgt, num_patches=self.opt.num_patches, patch_ids=sample_ids[1])
 
         total_nce_loss = 0.0
-        for f_q, f_k, crit, nce_layer in zip(feat_tgt_pool, feat_src_pool, self.criterionNCE, range(self.nce_nb_layers)):
+        for f_q, f_k, crit, nce_layer in zip(feat_tgt_pool, feat_src_pool, self.criterionNCE,
+                                             range(self.nce_nb_layers)):
             try:
                 loss = crit(f_q, f_k) * self.opt.lambda_NCE
             except RuntimeError as err:
