@@ -93,6 +93,7 @@ class BaseModel(nn.Module):
         for name in self.model_names:
             if isinstance(name, str):
                 net = getattr(self, name)
+                print(name)
                 setattr(self, name, torch.nn.DataParallel(net, self.opt.gpu_ids))
 
     # update learning rate (called once every epoch)
