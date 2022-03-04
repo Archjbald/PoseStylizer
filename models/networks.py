@@ -430,7 +430,8 @@ class PatchSamplePoseF(PatchSampleF):
         assert bp1.shape == bp2.shape
         B, C, H, W = bp1.shape
 
-        num_patches = [max(size * C, num_patches) for size in patch_sizes]
+        if isinstance(num_patches, int):
+            num_patches = [max(size * C, num_patches) for size in patch_sizes]
 
         kps_1, v_1 = get_kps(bp1, W)
         kps_2, v_2 = get_kps(bp2, W)

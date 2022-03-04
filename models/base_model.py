@@ -89,7 +89,7 @@ class BaseModel(nn.Module):
 
     def parallelize(self):
         if len(self.opt.gpu_ids) <= 1:
-            pass
+            return
         for name in self.model_names:
             if isinstance(name, str):
                 net = getattr(self, name)
