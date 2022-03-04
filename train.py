@@ -94,9 +94,7 @@ def train(opt, model, train_dataset, val_dataset):
                 model.save('latest', epoch, total_steps)
 
             # debug_gpu_memory(model)
-            print(get_gpu_memory())
-            if i > 5:
-                sys.exit(0)
+            # print(get_gpu_memory())
 
         t = time.time() - iter_start_time
         for key in stat_errors.keys():
