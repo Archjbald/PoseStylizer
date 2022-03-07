@@ -148,7 +148,7 @@ class TransferCUTModel(BaseModel):
             G_input = [
                 torch.cat((self.input_P1, self.input_P2), dim=0),
                 torch.cat((self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]), dim=0),
-                torch.cat((self.input_BP1[:, :nbj], self.input_BP2[:, :nbj]), dim=0),
+                torch.cat((self.input_BP2[:, :nbj], self.input_BP2[:, :nbj]), dim=0),
             ]
 
         if self.opt.dataset_mode == 'keypoint_segmentation':

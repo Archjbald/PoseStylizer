@@ -220,6 +220,8 @@ class TransferCycleModel(BaseModel):
         ret_errors['G_2'] = self.loss_G_2.item()
         ret_errors['cycle_1'] = self.loss_cycle_1.item()
         ret_errors['cycle_2'] = self.loss_cycle_2.item()
+        ret_errors['idt_1'] = self.loss_idt_1.item()
+        ret_errors['idt_2'] = self.loss_idt_2.item()
         return ret_errors
 
     def get_current_p2(self):
