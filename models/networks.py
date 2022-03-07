@@ -101,8 +101,8 @@ def get_scheduler(optimizer, opt):
     return scheduler
 
 
-def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropout=False, init_type='normal',
-             gpu_ids=[], n_downsampling=2, opt=None):
+def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropout=False, use_transfer_layer=False,
+             init_type='normal', gpu_ids=[], n_downsampling=2, opt=None):
     netG = None
     use_gpu = len(gpu_ids) > 0
     norm_layer = get_norm_layer(norm_type=norm)
@@ -116,7 +116,8 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
 
     netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
-                          n_blocks=9, gpu_ids=gpu_ids, n_downsampling=n_downsampling, opt=opt)
+                          use_transfer_layer=use_transfer_layer, n_blocks=9, gpu_ids=gpu_ids,
+                          n_downsampling=n_downsampling, opt=opt)
 
     """
     if len(gpu_ids) > 1:
@@ -449,7 +450,9 @@ class PatchSamplePoseF(PatchSampleF):
             pad_x = patch_shapes[s][0] // 2
             pad_y = patch_shapes[s][1] // 2
             idx_pad = F.pad(idx, (pad_y, pad_y, pad_x, pad_x), value=-1)
-            idx_patches = idx_pad.unfold(0, patch_shapes[s][0], 1).unfold(1, patch_shapes[s][1], 1).contiguous().view(h, w, -1)
+            idx_patches = idx_pad.unfold(0, patch_shapes[s][0], 1).unfold(1, patch_shapes[s][1], 1).contiguous().view(h,
+                                                                                                                      w,
+                                                                                                                      -1)
 
             ratio = ratios[s]
             for i, kps in enumerate([kps_1, kps_2]):

@@ -91,6 +91,8 @@ class BaseOptions():
         self.parser.add_argument('--num_patches', type=int, default=256, help='number of patches per layer')
         self.parser.add_argument('--flip_equivariance', action='store_true',
                                  help="Enforce flip-equivariance as additional regularization. It's used by FastCUT, but not CUT")
+        self.parser.add_argument('--use_transfer_layer', action='store_true', help='Use transfer layer in the generator')
+
 
         # Cycle
         self.parser.add_argument('--lambda_identity', type=float, default=0.5,

@@ -3,7 +3,62 @@ import functools
 import torch
 import torch.nn.functional as F
 from .model_utils import *
+from .networks import get_kps
 import numpy as np
+
+
+class TransferLayer(nn.Module):
+    def __init__(self, in_channel, nb_joints=18, n_downsampling=5):
+        super(TransferLayer, self).__init__()
+        self.nb_joints = nb_joints
+        self.down_max = nn.MaxPool2d(2 ** n_downsampling)
+        self.fincal_conv = nn.Conv2d(in_channel, in_channel, kernel_size=3, padding='same')
+
+    def forward(self, x, bp1, bp2):
+        bp1 = self.down_max(bp1)
+        bp2 = self.down_max(bp2)
+
+        threshold = 0.1
+
+        if bp1.max().item() == 0.:
+            return x
+
+        grad_size = (bp1 > threshold).sum(axis=-1).max().item()
+        pad = (grad_size + 1) // 2
+
+        bp1 = F.pad(bp1, (pad, pad, pad, pad), value=0)
+        bp2 = F.pad(bp2, (pad, pad, pad, pad), value=0)
+        x = F.pad(x, (pad, pad, pad, pad), value=0)
+
+        map2 = (bp2 > threshold).sum(axis=1, keepdim=True)  # .expand(-1, x.shape[1], -1, -1)
+        map2_nnz = map2.clone()
+        map2_nnz[map2 == 0] = 1
+
+        kp1, v1 = get_kps(bp1, bp1.shape[-1])
+        kp2, v2 = get_kps(bp2, bp2.shape[-1])
+
+        out = torch.zeros_like(x)
+        # coefs = torch.zeros_like(x[:, 0], dtype=torch.int)
+        # patch = torch.ones((2 * pad, 2 * pad), dtype=torch.int, device=x.device)
+
+        for b in range(bp1.shape[0]):
+            for k in range(self.nb_joints):
+                if not (v1[b, k] and v2[b, k]):
+                    continue
+                # out[b, k, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad:kp2[b, k, 1] + pad] = \
+                #     (x[b, k, kp1[b, k, 0] - pad:kp1[b, k, 0] + pad, kp1[b, k, 1] - pad:kp1[b, k, 1] + pad] *
+                #      bp1[b, k, kp1[b, k, 0] - pad:kp1[b, k, 0] + pad, kp1[b, k, 1] - pad:kp1[b, k, 1] + pad] +
+                #      out[b, k, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad:kp2[b, k, 1] + pad] *
+                #      (1. - bp2[b, k, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad:kp2[b, k, 1] + pad]))                out[b, k, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad:kp2[b, k, 1] + pad] = \
+                out[b, :, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad:kp2[b, k, 1] + pad] += \
+                    (x[b, :, kp1[b, k, 0] - pad:kp1[b, k, 0] + pad, kp1[b, k, 1] - pad:kp1[b, k, 1] + pad] *
+                     bp1[b, k, kp1[b, k, 0] - pad:kp1[b, k, 0] + pad, kp1[b, k, 1] - pad:kp1[b, k, 1] + pad])
+
+                # coefs[b, kp2[b, k, 0] - pad:kp2[b, k, 0] + pad, kp2[b, k, 1] - pad: kp2[b, k, 1] + pad] += patch
+        # out = (x * (1. - bp2).sum(axis=1, keepdim=True) + out) / self.nb_joints
+        out = (x * ((1. - bp2) * (bp2 > threshold)).sum(axis=1, keepdim=True) + out) / map2_nnz + x * (map2 == 0)
+
+        return self.fincal_conv(out[:, :, pad:-pad, pad:-pad])
 
 
 class UpNaive(nn.Module):
@@ -162,8 +217,9 @@ class DownBlock(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=None,
-                 gpu_ids=[], padding_type='reflect', n_downsampling=5, opt=None):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False,
+                 use_transfer_layer=False, n_blocks=None, gpu_ids=[], padding_type='reflect', n_downsampling=5,
+                 opt=None):
         super(Model, self).__init__()
         self.input_nc_s1 = input_nc[0]
         self.input_nc_s2 = input_nc[1]
@@ -173,6 +229,7 @@ class Model(nn.Module):
         self.ngf_bg = ngf // 4
         self.gpu_ids = gpu_ids
         self.use_dropout = use_dropout
+        self.use_transfer_layer = use_transfer_layer
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -262,6 +319,10 @@ class Model(nn.Module):
                          nn.Conv2d(self.ngf_fg + c_fg, output_nc, kernel_size=7, padding=0),
                          nn.Tanh()]
 
+        # transfer layer
+        self.transfer_layer = TransferLayer(min(n_downsampling ** 2 * self.ngf_fg, 512), nb_joints=opt.BP_input_nc,
+                                            n_downsampling=n_downsampling)
+
         # serialization
         self.psf_down = nn.Sequential(*psf_down)
         self.bps_down = nn.Sequential(*bps_down)
@@ -288,7 +349,10 @@ class Model(nn.Module):
         if encode_only:
             return feats[:4]
 
-            # up
+        # self.transfer_layer(*input)
+        self.transfer_layer(psf, *input[1:])
+
+        # up
         ptf = nn.functional.interpolate(bpt, size=(psf.shape[2], psf.shape[3]), mode='bilinear', align_corners=False)
 
         flag_first_layer = True
@@ -312,13 +376,13 @@ class Model(nn.Module):
 
 
 class stylegenerator(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6,
-                 gpu_ids=[], padding_type='reflect', n_downsampling=5, opt=None):
+    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False,
+                 use_transfer_layer=False, n_blocks=6, gpu_ids=[], padding_type='reflect', n_downsampling=5, opt=None):
         super(stylegenerator, self).__init__()
         assert type(input_nc) == list and len(input_nc) == 3, 'The AttModule take input_nc in format of list only!!'
         self.gpu_ids = gpu_ids
-        self.model = Model(input_nc, output_nc, ngf, norm_layer, use_dropout, n_blocks, gpu_ids, padding_type,
-                           n_downsampling=n_downsampling, opt=opt)
+        self.model = Model(input_nc, output_nc, ngf, norm_layer, use_dropout, use_transfer_layer,
+                           n_blocks, gpu_ids, padding_type, n_downsampling=n_downsampling, opt=opt)
 
     def forward(self, input, encode_only=False):
         return self.model(input, encode_only=encode_only)

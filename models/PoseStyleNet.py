@@ -22,8 +22,8 @@ class TransferModel(BaseModel):
         input_nc = [opt.P_input_nc, opt.BP_input_nc, opt.BP_input_nc]
         self.model_names = ['netG']
 
-        self.netG = networks.define_G(input_nc, opt.P_input_nc,
-                                      opt.ngf, opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type,
+        self.netG = networks.define_G(input_nc, opt.P_input_nc, opt.ngf, opt.which_model_netG, opt.norm,
+                                      not opt.no_dropout, opt.use_transfer_layer, opt.init_type,
                                       self.gpu_ids, n_downsampling=opt.G_n_downsampling, opt=opt)
 
         if self.isTrain:
