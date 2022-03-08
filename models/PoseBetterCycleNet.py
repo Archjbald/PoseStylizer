@@ -8,14 +8,14 @@ from . import networks
 import util.util as util
 
 
-class TransferCycleModel(BaseModel):
+class TransferBetterCycleModel(BaseModel):
     """
     The code borrows heavily from the PyTorch implementation of CycleGAN
     https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
     """
 
     def name(self):
-        return 'TransferCycleModel'
+        return 'TransferBetterCycleModel'
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
@@ -67,10 +67,13 @@ class TransferCycleModel(BaseModel):
             self.criterionIdt = torch.nn.L1Loss()
 
             # lambdas:
-            lambdas = ['GAN', 'A', 'B', 'idt']
+            lambdas = ['GAN', 'A', 'B', 'identity']
             for lbd in lambdas:
                 lbd = f'lambda_{lbd}'
                 setattr(self, lbd, getattr(opt, lbd))
+            self.lambda_percep = 0.2
+
+            # initialize optimizers
 
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -156,22 +159,51 @@ class TransferCycleModel(BaseModel):
             loss_D_PP += self.backward_D_basic(self.netD_PP, real_PP, fake_PP, backward=backward)
         self.loss_D_PP = loss_D_PP.item()
 
-    def backward_G(self, backward=True):
-        """Calculate the loss for generators G_A and G_B"""
-        lambda_idt = self.lambda_identity
+    def bacwkard_cycle(self):
         lambda_A = self.lambda_A
         lambda_B = self.lambda_B
-        # Identity loss
+        lambda_idt = self.lambda_identity
+        lambda_percep = self.lambda_percep if (self.opt.with_D_PP or self.opt.with_D_PB) else 1.
+
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
             self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt_1 = self.criterionIdt(self.idt_1, self.input_P1) * lambda_B * lambda_idt
+            self.loss_idt_1 = self.criterionIdt(self.idt_1, self.input_P1) * lambda_B * lambda_idt * lambda_percep
+
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
             self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt_2 = self.criterionIdt(self.idt_2, self.input_P2) * lambda_A * lambda_idt
+            self.loss_idt_2 = self.criterionIdt(self.idt_2, self.input_P2) * lambda_A * lambda_idt * lambda_percep
+
+            lambda_percep = 1 - lambda_percep
+            lambda_percep /= max(self.opt.with_D_PP + self.opt.with_D_PB, 1)
+            if self.opt.with_D_PP:
+                feat_real_P1 = self.netD_PP(torch.cat((self.input_P1, self.input_P2), 1), use_sigmoid=False)
+                feat_fake_P1 = self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1), use_sigmoid=False)
+                self.loss_idt_1 += self.criterionIdt(feat_real_P1, feat_fake_P1) * lambda_A * lambda_idt * lambda_percep
+
+                feat_real_P2 = self.netD_PP(torch.cat((self.input_P2, self.input_P1), 1), use_sigmoid=False)
+                feat_fake_P2 = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1), use_sigmoid=False)
+                self.loss_idt_2 += self.criterionIdt(feat_real_P2, feat_fake_P2) * lambda_B * lambda_idt * lambda_percep
+            if self.opt.with_D_PB:
+                feat_real_P1 = self.netD_PB(torch.cat((self.input_P1, self.input_BP1), 1), use_sigmoid=False)
+                feat_fake_P1 = self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1), use_sigmoid=False)
+                self.loss_idt_1 += self.criterionIdt(feat_real_P1, feat_fake_P1) * lambda_A * lambda_idt * lambda_percep
+
+                feat_real_P2 = self.netD_PB(torch.cat((self.input_P2, self.input_BP1), 1), use_sigmoid=False)
+                feat_fake_P2 = self.netD_PB(torch.cat((self.fake_P2, self.input_BP1), 1), use_sigmoid=False)
+                self.loss_idt_2 += self.criterionIdt(feat_real_P2, feat_fake_P2) * lambda_B * lambda_idt * lambda_percep
         else:
             self.loss_idt_1 = 0
             self.loss_idt_2 = 0
+
+    def backward_G(self, backward=True):
+        """Calculate the loss for generators G_A and G_B"""
+
+        lambda_A = self.lambda_A
+        lambda_B = self.lambda_B
+
+        # Identity loss
+        self.bacwkard_cycle()
 
         self.loss_G_1 = 0
         self.loss_G_2 = 0
@@ -278,6 +310,17 @@ class TransferCycleModel(BaseModel):
         ret_visuals = OrderedDict([('vis', vis)])
 
         return ret_visuals
+
+    def update_learning_rate(self):
+        for scheduler in self.schedulers:
+            scheduler.step()
+        lr = self.optimizers[0].param_groups[0]['lr']
+        print('learning rate = %.7f' % lr)
+
+        epoch = scheduler.last_epoch
+        progress = epoch / (self.opt.niter - self.opt.niter_decay)
+        self.lambda_percep = 0.2 + progress * 0.6
+        self.lambda_idt = 0.8 - progress * 0.6
 
     def save(self, label, epoch, total_steps):
         self.save_network(self.netG, 'netG', label, self.gpu_ids, epoch, total_steps)

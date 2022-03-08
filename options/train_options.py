@@ -62,6 +62,13 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--patch_sizes', type=str, default='3',
                                  help='compute NCE loss on which layers')
         self.parser.add_argument('--in_mask', action='store_true', help='pick random patch in the body mask')
+        self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
+
+        # Cycle
+        self.parser.add_argument('--lambda_identity', type=float, default=0.8,
+                                 help='the "identity preservation loss"')
+
+
 
         self.isTrain = True
 

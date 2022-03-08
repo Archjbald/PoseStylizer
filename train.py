@@ -130,10 +130,6 @@ def train(opt, model, train_dataset, val_dataset):
             model.save('latest', epoch + 1, total_steps)
             model.save(epoch, epoch + 1, total_steps)
 
-        # print time used
-        print('End of epoch %d / %d \t Time Taken: %d sec' %
-              (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
-
         # Validation
         if opt.backward in ['basic'] and epoch % opt.val_epoch_freq == 0:
             val_errors = {}
@@ -147,7 +143,11 @@ def train(opt, model, train_dataset, val_dataset):
                 model.cleanse()
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
 
-    model.update_learning_rate()
+        # print time used
+        print('End of epoch %d / %d \t Time Taken: %d sec' %
+              (epoch, opt.niter + opt.niter_decay, time.time() - epoch_start_time))
+
+        model.update_learning_rate()
 
 
 def main():

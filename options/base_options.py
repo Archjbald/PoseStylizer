@@ -69,13 +69,12 @@ class BaseOptions():
 
         self.initialized = True
         # CUT options
-        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut', 'cycle'],
+        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut', 'cycle', 'better_cycle'],
                                  help='choose between classic APS or CUT backward method for generator')
         self.parser.add_argument('--CUT_mode', type=str, default="CUT", choices='(CUT, cut, FastCUT, fastcut)')
 
         self.parser.add_argument('--init_gain', type=float, default=0.02,
                                  help='scaling factor for normal, xavier and orthogonal.')
-        self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
 
         self.parser.add_argument('--no_nce_idt', action='store_true',
                                  help='not use NCE loss for identity mapping: NCE(G(Y), Y))')
@@ -93,10 +92,6 @@ class BaseOptions():
                                  help="Enforce flip-equivariance as additional regularization. It's used by FastCUT, but not CUT")
         self.parser.add_argument('--use_transfer_layer', action='store_true', help='Use transfer layer in the generator')
 
-
-        # Cycle
-        self.parser.add_argument('--lambda_identity', type=float, default=0.5,
-                                 help='the "identity preservation loss"')
 
         self.parser.set_defaults(pool_size=0)
 

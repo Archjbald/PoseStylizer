@@ -279,6 +279,7 @@ class ResnetDiscriminator(nn.Module):
         self.input_nc = input_nc
         self.ngf = ngf
         self.gpu_ids = gpu_ids
+        self.use_sigmoid = use_sigmoid
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -323,13 +324,14 @@ class ResnetDiscriminator(nn.Module):
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout,
                                   use_bias=use_bias)]
 
-        if use_sigmoid:
-            model += [nn.Sigmoid()]
-
         self.model = nn.Sequential(*model)
 
-    def forward(self, input, mask=None):
+    def forward(self, input, mask=None, use_sigmoid=None):
+        if use_sigmoid is None:
+            use_sigmoid = self.use_sigmoid
         y = self.model(input)
+        if use_sigmoid:
+            y = torch.sigmoid(y)
         if mask is not None:
             mask = F.interpolate(mask, size=(y.shape[2], y.shape[3]), align_corners=False)
             y = y * mask
