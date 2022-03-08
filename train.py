@@ -26,6 +26,19 @@ def train(opt, model, train_dataset, val_dataset):
 
     visualizer = Visualizer(opt)
 
+    # log opts
+    print('-' * 17, ' Options ', '-' * 17)
+    opt_keys = list(opt.__dict__.keys())
+    opt_keys.sort()
+    opt_msg = ''
+    for k in opt_keys:
+        opt_msg += f'{k}: {opt.__dict__[k]}\n'
+    print(opt_msg)
+    with open(visualizer.log_name.replace('loss_log.txt', 'options.txt'), 'w') as f:
+        f.write(opt_msg)
+    print('-' * 43)
+
+
     info_dir = os.path.join(opt.checkpoints_dir, opt.name)
     infoname = '%s.pkl' % (opt.which_epoch)
     infoname = os.path.join(info_dir, infoname)
