@@ -132,16 +132,22 @@ class TransferCycleModel(BaseModel):
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):
         nbj = self.opt.BP_input_nc
-        real_PB = torch.cat((self.input_P2, self.input_BP2[:, :nbj]), 1)
-        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2[:, :nbj]), 1).data)
-        loss_D_PB = self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
-        self.loss_D_PB = loss_D_PB.item()
+        loss_D_PB = 0
+        pairs = [(self.input_P2, self.input_BP2, self.fake_P2), (self.input_P1, self.input_BP1, self.fake_P1)]
+        for pair in pairs:
+            real_PB = torch.cat((pair[0], pair[1][:, :nbj]), 1)
+            fake_PB = self.fake_PB_pool.query(torch.cat((pair[2], pair[1][:, :nbj]), 1).data)
+            loss_D_PB += self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
+        self.loss_D_PB = loss_D_PB.item() / len(pairs)
 
     # D: take(P, P') as input
     def backward_D_PP(self, backward=True):
-        real_PP = torch.cat((self.input_P2, self.input_P1), 1)
-        fake_PP = self.fake_PP_pool.query(torch.cat((self.fake_P2, self.input_P1), 1).data)
-        loss_D_PP = self.backward_D_basic(self.netD_PP, real_PP, fake_PP, backward=backward)
+        loss_D_PP = 0
+        pairs = [(self.input_P2, self.input_P1, self.fake_P2), (self.input_P1, self.input_P2, self.fake_P1)]
+        for pair in pairs:
+            real_PP = torch.cat((pair[0], pair[1]), 1)
+            fake_PP = self.fake_PP_pool.query(torch.cat((pair[2], pair[1]), 1).data)
+            loss_D_PP += self.backward_D_basic(self.netD_PP, real_PP, fake_PP, backward=backward)
         self.loss_D_PP = loss_D_PP.item()
 
     def backward_G(self, backward=True):

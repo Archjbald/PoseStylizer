@@ -107,7 +107,7 @@ class TransferModel(BaseModel):
         G_input = [self.input_P1, self.input_BP1, self.input_BP2]
         if self.opt.dataset_mode == 'keypoint_segmentation':
             G_input.append(self.input_MP1)
-        self.fake_p2 = self.netG(G_input)
+        self.fake_P2 = self.netG(G_input)
 
     def test(self):
         with torch.no_grad():
@@ -119,24 +119,24 @@ class TransferModel(BaseModel):
 
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
-            pred_fake_PB = self.netD_PB(torch.cat((self.fake_p2, self.input_BP2), 1))
+            pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
             self.loss_G_GAN_PB = self.criterionGAN(pred_fake_PB, True)
 
         if self.opt.with_D_PP:
-            pred_fake_PP = self.netD_PP(torch.cat((self.fake_p2, self.input_P1), 1))
+            pred_fake_PP = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1))
             self.loss_G_GAN_PP = self.criterionGAN(pred_fake_PP, True)
 
         # L1 loss
         if self.opt.L1_type == 'l1_plus_perL1':
             if self.opt.shuffle:
-                losses = self.criterionL1(self.fake_p2, self.input_P1)
+                losses = self.criterionL1(self.fake_P2, self.input_P1)
             else:
-                losses = self.criterionL1(self.fake_p2, self.input_P2)
+                losses = self.criterionL1(self.fake_P2, self.input_P2)
             self.loss_G_L1 = losses[0]
             self.loss_originL1 = losses[1].item()
             self.loss_perceptual = losses[2].item()
         else:
-            self.loss_G_L1 = self.criterionL1(self.fake_p2, self.input_P2) * self.opt.lambda_A
+            self.loss_G_L1 = self.criterionL1(self.fake_P2, self.input_P2) * self.opt.lambda_A
 
         pair_L1loss = self.loss_G_L1
         if self.opt.with_D_PB:
@@ -178,14 +178,14 @@ class TransferModel(BaseModel):
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):
         real_PB = torch.cat((self.input_P2, self.input_BP2), 1)
-        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_p2, self.input_BP2), 1).data)
+        fake_PB = self.fake_PB_pool.query(torch.cat((self.fake_P2, self.input_BP2), 1).data)
         loss_D_PB = self.backward_D_basic(self.netD_PB, real_PB, fake_PB, backward=backward)
         self.loss_D_PB = loss_D_PB.item()
 
     # D: take(P, P') as input
     def backward_D_PP(self, backward=True):
         real_PP = torch.cat((self.input_P2, self.input_P1), 1)
-        fake_PP = self.fake_PP_pool.query(torch.cat((self.fake_p2, self.input_P1), 1).data)
+        fake_PP = self.fake_PP_pool.query(torch.cat((self.fake_P2, self.input_P1), 1).data)
         loss_D_PP = self.backward_D_basic(self.netD_PP, real_PP, fake_PP, backward=backward)
         self.loss_D_PP = loss_D_PP.item()
 
@@ -227,8 +227,8 @@ class TransferModel(BaseModel):
 
         return ret_errors
 
-    def get_current_p2(self):
-        return util.tensor2im(self.fake_p2.data)
+    def get_current_P2(self):
+        return util.tensor2im(self.fake_P2.data)
 
     def get_current_visuals(self):
         height, width = self.input_P1.size(2), self.input_P1.size(3)
@@ -238,13 +238,13 @@ class TransferModel(BaseModel):
         input_BP1 = util.draw_pose_from_map(self.input_BP1.data)[0]
         input_BP2 = util.draw_pose_from_map(self.input_BP2.data)[0]
 
-        fake_p2 = util.tensor2im(self.fake_p2.data)
+        fake_P2 = util.tensor2im(self.fake_P2.data)
         vis = np.zeros((height, width * 5, 3)).astype(np.uint8)  # h, w, c
         vis[:, :width, :] = input_P1
         vis[:, width:width * 2, :] = input_BP1
         vis[:, width * 2:width * 3, :] = input_P2
         vis[:, width * 3:width * 4, :] = input_BP2
-        vis[:, width * 4:, :] = fake_p2
+        vis[:, width * 4:, :] = fake_P2
 
         ret_visuals = OrderedDict([('vis', vis)])
 
