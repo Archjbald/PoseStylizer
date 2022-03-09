@@ -177,20 +177,24 @@ class TransferBetterCycleModel(BaseModel):
             lambda_percep = 1 - lambda_percep
             lambda_percep /= max(self.opt.with_D_PP + self.opt.with_D_PB, 1)
             if self.opt.with_D_PP:
-                feat_real_P1 = self.netD_PP(torch.cat((self.input_P1, self.input_P2), 1), use_sigmoid=False)
-                feat_fake_P1 = self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1), use_sigmoid=False)
+                with torch.no_grad():
+                    feat_real_P1 = self.netD_PP(torch.cat((self.input_P1, self.input_P2), 1), use_sigmoid=False)
+                    feat_fake_P1 = self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1), use_sigmoid=False)
                 self.loss_idt_1 += self.criterionIdt(feat_real_P1, feat_fake_P1) * lambda_A * lambda_idt * lambda_percep
 
-                feat_real_P2 = self.netD_PP(torch.cat((self.input_P2, self.input_P1), 1), use_sigmoid=False)
-                feat_fake_P2 = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1), use_sigmoid=False)
+                with torch.no_grad():
+                    feat_real_P2 = self.netD_PP(torch.cat((self.input_P2, self.input_P1), 1), use_sigmoid=False)
+                    feat_fake_P2 = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1), use_sigmoid=False)
                 self.loss_idt_2 += self.criterionIdt(feat_real_P2, feat_fake_P2) * lambda_B * lambda_idt * lambda_percep
             if self.opt.with_D_PB:
-                feat_real_P1 = self.netD_PB(torch.cat((self.input_P1, self.input_BP1), 1), use_sigmoid=False)
-                feat_fake_P1 = self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1), use_sigmoid=False)
+                with torch.no_grad():
+                    feat_real_P1 = self.netD_PB(torch.cat((self.input_P1, self.input_BP1), 1), use_sigmoid=False)
+                    feat_fake_P1 = self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1), use_sigmoid=False)
                 self.loss_idt_1 += self.criterionIdt(feat_real_P1, feat_fake_P1) * lambda_A * lambda_idt * lambda_percep
 
-                feat_real_P2 = self.netD_PB(torch.cat((self.input_P2, self.input_BP1), 1), use_sigmoid=False)
-                feat_fake_P2 = self.netD_PB(torch.cat((self.fake_P2, self.input_BP1), 1), use_sigmoid=False)
+                with torch.no_grad():
+                    feat_real_P2 = self.netD_PB(torch.cat((self.input_P2, self.input_BP1), 1), use_sigmoid=False)
+                    feat_fake_P2 = self.netD_PB(torch.cat((self.fake_P2, self.input_BP1), 1), use_sigmoid=False)
                 self.loss_idt_2 += self.criterionIdt(feat_real_P2, feat_fake_P2) * lambda_B * lambda_idt * lambda_percep
         else:
             self.loss_idt_1 = 0
