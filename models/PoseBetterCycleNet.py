@@ -322,7 +322,7 @@ class TransferBetterCycleModel(BaseModel):
         print('learning rate = %.7f' % lr)
 
         epoch = scheduler.last_epoch
-        progress = epoch / (self.opt.niter - self.opt.niter_decay)
+        progress = epoch / (self.opt.niter + self.opt.niter_decay)
         self.lambda_percep = 0.2 + progress * 0.6
         self.lambda_idt = 0.8 - progress * 0.6
 
