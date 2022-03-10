@@ -69,7 +69,8 @@ class BaseOptions():
 
         self.initialized = True
         # CUT options
-        self.parser.add_argument('--backward', type=str, default='basic', choices=['basic', 'cut', 'cycle', 'better_cycle'],
+        self.parser.add_argument('--backward', type=str, default='basic',
+                                 choices=['basic', 'cut', 'cycle', 'better_cycle', 'cycle_hpe'],
                                  help='choose between classic APS or CUT backward method for generator')
         self.parser.add_argument('--CUT_mode', type=str, default="CUT", choices='(CUT, cut, FastCUT, fastcut)')
 
@@ -90,8 +91,8 @@ class BaseOptions():
         self.parser.add_argument('--num_patches', type=int, default=256, help='number of patches per layer')
         self.parser.add_argument('--flip_equivariance', action='store_true',
                                  help="Enforce flip-equivariance as additional regularization. It's used by FastCUT, but not CUT")
-        self.parser.add_argument('--use_transfer_layer', action='store_true', help='Use transfer layer in the generator')
-
+        self.parser.add_argument('--use_transfer_layer', action='store_true',
+                                 help='Use transfer layer in the generator')
 
         self.parser.set_defaults(pool_size=0)
 

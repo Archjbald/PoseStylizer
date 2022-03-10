@@ -6,22 +6,23 @@ from .base_model import BaseModel
 from util.image_pool import ImagePool
 from . import networks
 import util.util as util
+from .hpe.simple_bl import get_pose_net
 
 
-class TransferCycleModel(BaseModel):
+class TransferCycleHPEModel(BaseModel):
     """
     The code borrows heavily from the PyTorch implementation of CycleGAN
     https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
     """
 
     def name(self):
-        return 'TransferCycleModel'
+        return 'TransferCycleHPEModel'
 
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
         self.opt = opt
 
-        self.model_names = ['netG']
+        self.model_names = ['netG', 'netHPE']
 
         # define networks (both generator and discriminator)
         input_nc = [opt.P_input_nc, opt.BP_input_nc, opt.BP_input_nc]
@@ -29,6 +30,8 @@ class TransferCycleModel(BaseModel):
         self.netG = networks.define_G(input_nc, opt.P_input_nc, opt.ngf, opt.which_model_netG, opt.norm,
                                       not opt.no_dropout, opt.use_transfer_layer, opt.init_type,
                                       self.gpu_ids, n_downsampling=opt.G_n_downsampling, opt=opt)
+
+        self.netHPE = get_pose_net()
 
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
@@ -62,9 +65,10 @@ class TransferCycleModel(BaseModel):
             self.fake_PP_pool = ImagePool(opt.pool_size)
             self.fake_PB_pool = ImagePool(opt.pool_size)
             # define loss functions
-            self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
-            self.criterionCycle = torch.nn.L1Loss()
-            self.criterionIdt = torch.nn.L1Loss()
+            self.criterion_GAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
+            self.criterion_cycle = torch.nn.L1Loss()
+            self.criterion_idt = torch.nn.L1Loss()
+            self.criterion_HPE = torch.nn.MSELoss()
 
             # lambdas:
             lambdas = ['GAN', 'A', 'B', 'identity']
@@ -112,9 +116,14 @@ class TransferCycleModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
-        self.rec_P1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
+        with torch.no_grad():
+            self.fake_BP2 = self.netHPE(self.fake_P2)
+        self.rec_P1 = self.netG([self.fake_P2, self.fake_BP2, self.input_BP1])  # G_B(G_A(A))
+
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
-        self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
+        with torch.no_grad():
+            self.fake_BP1 = self.netHPE(self.fake_P1)
+        self.rec_P2 = self.netG([self.fake_P1, self.fake_BP1, self.input_BP2])  # G_A(G_B(B))
 
     def test(self):
         with torch.no_grad():
@@ -123,10 +132,10 @@ class TransferCycleModel(BaseModel):
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
         pred_real = netD(real)
-        loss_D_real = self.criterionGAN(pred_real, True) * self.lambda_GAN
+        loss_D_real = self.criterion_GAN(pred_real, True) * self.lambda_GAN
         # Fake
         pred_fake = netD(fake.detach())
-        loss_D_fake = self.criterionGAN(pred_fake, False) * self.lambda_GAN
+        loss_D_fake = self.criterion_GAN(pred_fake, False) * self.lambda_GAN
         # Combined loss
         loss_D = (loss_D_real + loss_D_fake) * 0.5
         # backward
@@ -165,10 +174,10 @@ class TransferCycleModel(BaseModel):
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
             self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt_1 = self.criterionIdt(self.idt_1, self.input_P1) * lambda_B * lambda_idt
+            self.loss_idt_1 = self.criterion_idt(self.idt_1, self.input_P1) * lambda_B * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
             self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt_2 = self.criterionIdt(self.idt_2, self.input_P2) * lambda_A * lambda_idt
+            self.loss_idt_2 = self.criterion_idt(self.idt_2, self.input_P2) * lambda_A * lambda_idt
         else:
             self.loss_idt_1 = 0
             self.loss_idt_2 = 0
@@ -176,21 +185,21 @@ class TransferCycleModel(BaseModel):
         self.loss_G_1 = 0
         self.loss_G_2 = 0
         if self.opt.with_D_PB:
-            self.loss_G_GAN_PB_1 = self.criterionGAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
+            self.loss_G_GAN_PB_1 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
             self.loss_G_1 += self.loss_G_GAN_PB_1
-            self.loss_G_GAN_PB_2 = self.criterionGAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
+            self.loss_G_GAN_PB_2 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
             self.loss_G_2 += self.loss_G_GAN_PB_2
 
         if self.opt.with_D_PP:
-            self.loss_G_GAN_PP_1 = self.criterionGAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
-            self.loss_G_GAN_PP_2 = self.criterionGAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
+            self.loss_G_GAN_PP_1 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
+            self.loss_G_GAN_PP_2 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
             self.loss_G_1 += self.loss_G_GAN_PP_1
             self.loss_G_2 += self.loss_G_GAN_PP_2
 
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle_1 = self.criterionCycle(self.rec_P1, self.input_P1) * lambda_A
+        self.loss_cycle_1 = self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_A
         # Backward cycle loss || G_A(G_B(B)) - B||
-        self.loss_cycle_2 = self.criterionCycle(self.rec_P2, self.input_P2) * lambda_B
+        self.loss_cycle_2 = self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_B
         # combined loss and calculate gradients
         self.loss_G = self.loss_G_1 + self.loss_G_1 + self.loss_cycle_1 + self.loss_cycle_2 + self.loss_idt_1 + self.loss_idt_2
         if backward:
