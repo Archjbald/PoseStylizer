@@ -38,7 +38,6 @@ def train(opt, model, train_dataset, val_dataset):
         f.write(opt_msg)
     print('-' * 43)
 
-
     info_dir = os.path.join(opt.checkpoints_dir, opt.name)
     infoname = '%s.pkl' % (opt.which_epoch)
     infoname = os.path.join(info_dir, infoname)
@@ -101,7 +100,7 @@ def train(opt, model, train_dataset, val_dataset):
                 visualizer.print_current_errors(epoch, epoch_iter, errors, t)
 
             # save latest model
-            if total_steps % opt.save_latest_freq == 0:
+            if total_steps % opt.save_latest_freq == 0 and False:
                 print('saving the latest model (epoch %d, total_steps %d)' %
                       (epoch, total_steps))
                 model.save('latest', epoch, total_steps)
