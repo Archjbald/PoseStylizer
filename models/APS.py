@@ -320,8 +320,8 @@ class Model(nn.Module):
                          nn.Tanh()]
 
         # transfer layer
-        self.transfer_layer = TransferLayer(min(n_downsampling ** 2 * self.ngf_fg, 512), nb_joints=opt.BP_input_nc,
-                                            n_downsampling=n_downsampling)
+        # self.transfer_layer = TransferLayer(min(n_downsampling ** 2 * self.ngf_fg, 512), nb_joints=opt.BP_input_nc,
+        #                                     n_downsampling=n_downsampling)
 
         # serialization
         self.psf_down = nn.Sequential(*psf_down)
