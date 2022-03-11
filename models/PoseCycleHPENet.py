@@ -55,8 +55,8 @@ class TransferCycleHPEModel(TransferCycleModel):
             self.loss_G_2 += self.loss_G_GAN_PP_2 * GAN_ratio
 
         # Fake_qualities
-        quality_1 = 1. - self.loss_G_1 / GAN_ratio if self.loss_G_1 else 1.
-        quality_2 = 1. - self.loss_G_2 / GAN_ratio if self.loss_G_2 else 1.
+        quality_1 = 1. - self.loss_G_1.item() / GAN_ratio if self.loss_G_1 else 1.
+        quality_2 = 1. - self.loss_G_2.item() / GAN_ratio if self.loss_G_2 else 1.
 
         # Identity loss
         if lambda_idt > 0:
