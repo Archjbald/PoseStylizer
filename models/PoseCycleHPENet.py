@@ -41,21 +41,22 @@ class TransferCycleHPEModel(TransferCycleModel):
         # Adversarial loss
         self.loss_G_1 = 0
         self.loss_G_2 = 0
+        GAN_ratio = self.opt.with_D_PP + self.opt.with_D_PB
         if self.opt.with_D_PB:
             self.loss_G_GAN_PB_1 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PB_1
+            self.loss_G_1 += self.loss_G_GAN_PB_1 * GAN_ratio
             self.loss_G_GAN_PB_2 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
-            self.loss_G_2 += self.loss_G_GAN_PB_2
+            self.loss_G_2 += self.loss_G_GAN_PB_2 * GAN_ratio
 
         if self.opt.with_D_PP:
             self.loss_G_GAN_PP_1 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
             self.loss_G_GAN_PP_2 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PP_1
-            self.loss_G_2 += self.loss_G_GAN_PP_2
+            self.loss_G_1 += self.loss_G_GAN_PP_1 * GAN_ratio
+            self.loss_G_2 += self.loss_G_GAN_PP_2 * GAN_ratio
 
         # Fake_qualities
-        quality_1 = 1. - self.loss_G_1 / (self.opt.with_D_PP + self.opt.with_D_PB) if self.loss_G_1 else 1.
-        quality_2 = 1. - self.loss_G_2 / (self.opt.with_D_PP + self.opt.with_D_PB) if self.loss_G_2 else 1.
+        quality_1 = 1. - self.loss_G_1 / GAN_ratio if self.loss_G_1 else 1.
+        quality_2 = 1. - self.loss_G_2 / GAN_ratio if self.loss_G_2 else 1.
 
         # Identity loss
         if lambda_idt > 0:
