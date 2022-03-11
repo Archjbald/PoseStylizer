@@ -65,10 +65,12 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_NCE', type=float, default=1.0, help='weight for NCE loss: NCE(G(X), X)')
 
         # Cycle
+        self.parser.add_argument('--lambda_cycle', type=float, default=10.,
+                                 help='the cycle loss')
         self.parser.add_argument('--lambda_identity', type=float, default=0.8,
                                  help='the "identity preservation loss"')
-
-
+        self.parser.add_argument('--lambda_HPE', type=float, default=0.,
+                                 help='the generated keypoint loss')
 
         self.isTrain = True
 
