@@ -350,7 +350,7 @@ class Model(nn.Module):
             return feats[:4]
 
         # self.transfer_layer(*input)
-        self.transfer_layer(psf, *input[1:])
+        # self.transfer_layer(psf, *input[1:])
 
         # up
         ptf = nn.functional.interpolate(bpt, size=(psf.shape[2], psf.shape[3]), mode='bilinear', align_corners=False)
