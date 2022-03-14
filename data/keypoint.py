@@ -123,5 +123,6 @@ class KeyDataset(BaseDataset):
 
 def flip_keypoints(bp):
     bp = np.array(bp[:, ::-1, :])
-    bp = bp[:, :, [0, 1, 5, 6, 7, 2, 3, 4, 11, 12, 13, 8, 9, 10, 15, 14, 17, 16]]
+    idxs = [0, 1, 5, 6, 7, 2, 3, 4, 11, 12, 13, 8, 9, 10, 15, 14, 17, 16] + list(range(18, bp.shape[-1]))
+    bp = bp[:, :, idxs]
     return bp
