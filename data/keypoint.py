@@ -74,13 +74,16 @@ class KeyDataset(BaseDataset):
                 P1_img = rs_transform(P1_img)
                 P2_img = rs_transform(P2_img)
 
+                BP1_img = rs_transform(BP1_img)
+                BP2_img = rs_transform(BP2_img)
+
             if flip_random > 0.5:
                 # print('fliped ...')
                 P1_img = P1_img.transpose(Image.FLIP_LEFT_RIGHT)
                 P2_img = P2_img.transpose(Image.FLIP_LEFT_RIGHT)
 
-                BP1_img = np.array(BP1_img[:, ::-1, :])  # flip
-                BP2_img = np.array(BP2_img[:, ::-1, :])  # flip
+                BP1_img = flip_keypoints(BP1_img)  # flip
+                BP2_img = flip_keypoints(BP2_img)  # flip
 
             BP1 = torch.from_numpy(BP1_img).float()  # h, w, c
             BP1 = BP1.transpose(2, 0)  # c,w,h
@@ -116,3 +119,9 @@ class KeyDataset(BaseDataset):
 
     def name(self):
         return 'KeyDataset'
+
+
+def flip_keypoints(bp):
+    bp = np.array(bp[:, ::-1, :])
+    bp = bp[:, :, [0, 1, 5, 6, 7, 2, 3, 4, 11, 12, 13, 8, 9, 10, 15, 14, 17, 16]]
+    return bp

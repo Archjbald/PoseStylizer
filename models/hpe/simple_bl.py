@@ -53,11 +53,11 @@ class PoseResNet(PoseNet):
 
         nn.Module.load_state_dict(self, state_dict=state_dict, strict=True)
 
-    def generate_final_bps(self, out, img, sigma=12):
+    def generate_final_bps(self, out_coco, img, sigma=12):
         img_size = img.shape[-2:]
 
         aps_in_coco = [0, 6, 8, 10, 5, 7, 9, 12, 14, 16, 11, 13, 15, 2, 1, 4, 3]
-        out = out[:, aps_in_coco]
+        out = out_coco[:, aps_in_coco]
 
         v, kps = out.view(*out.shape[:-2], -1).max(dim=-1)
         kps = torch.stack((kps.div(out.shape[-1], rounding_mode='trunc'), kps % out.shape[-1]), -1)
