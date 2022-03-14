@@ -99,7 +99,8 @@ class TransferCycleHPEModel(TransferCycleModel):
 
     def get_current_errors(self):
         ret_errors = TransferCycleModel.get_current_errors(self)
-        ret_errors['HPE_1'] = self.loss_HPE_1.item()
-        ret_errors['HPE_2'] = self.loss_HPE_2.item()
+        if self.lambda_HPE:
+            ret_errors['HPE_1'] = self.loss_HPE_1.item()
+            ret_errors['HPE_2'] = self.loss_HPE_2.item()
 
         return ret_errors

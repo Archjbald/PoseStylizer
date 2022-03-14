@@ -70,7 +70,7 @@ class BaseOptions():
         self.initialized = True
         # CUT options
         self.parser.add_argument('--backward', type=str, default='basic',
-                                 choices=['basic', 'cut', 'cycle', 'better_cycle', 'cycle_hpe'],
+                                 choices=['basic', 'cut', 'cycle', 'better_cycle', 'cycle_hpe', 'cycle_hpe_D'],
                                  help='choose between classic APS or CUT backward method for generator')
         self.parser.add_argument('--CUT_mode', type=str, default="CUT", choices='(CUT, cut, FastCUT, fastcut)')
 

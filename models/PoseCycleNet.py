@@ -91,7 +91,7 @@ class TransferCycleModel(BaseModel):
             for optimizer in self.optimizers:
                 self.schedulers.append(networks.get_scheduler(optimizer, opt))
 
-            print('---------- Networks initialized -------------')
+        print('---------- Networks initialized -------------')
 
     def set_input(self, input):
         self.input_P1, self.input_BP1 = input['P1'], input['BP1'][:, :18]
