@@ -77,7 +77,7 @@ class PoseResNet(PoseNet):
         result = torch.zeros(kps.shape[:-1] + img_size, dtype=out.dtype, device=out.device)
         if self.mesh_grid is None:
             self.mesh_grid = [t.to(out.device) for t in
-                              torch.meshgrid(torch.arange(img_size[0]), torch.arange(img_size[1]))]
+                              torch.meshgrid(torch.arange(img_size[0]), torch.arange(img_size[1]), indexing="ij")]
         yy, xx = self.mesh_grid
 
         for b, kp in enumerate(kps):
