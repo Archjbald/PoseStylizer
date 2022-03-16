@@ -15,9 +15,9 @@ class TransferCycleHPEModel(TransferCycleModel):
 
         self.model_names.append('netHPE')
         self.netHPE = get_pose_net()
-        self.lambda_HPE = opt.lambda_HPE
 
         if self.isTrain:
+            self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()
 
     def forward(self):

@@ -31,8 +31,9 @@ class BaseModel(nn.Module):
     def test(self):
         pass
 
+    # get image paths
     def get_image_paths(self):
-        pass
+        return self.image_paths
 
     def optimize_parameters(self):
         pass

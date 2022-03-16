@@ -113,10 +113,6 @@ class TransferModel(BaseModel):
         with torch.no_grad():
             self.forward()
 
-    # get image paths
-    def get_image_paths(self):
-        return self.image_paths
-
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
             pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
