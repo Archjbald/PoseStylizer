@@ -30,6 +30,7 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
 
         self.netHPE = get_pose_net()
         self.lambda_HPE = opt.lambda_HPE
+        self.lambda_GAN = 0.2
 
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
@@ -80,7 +81,6 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
 
     # D: take(P, B) as input
     def backward_D(self, backward=True):
-        nbj = self.opt.BP_input_nc
         loss_D = 0.
         pairs = [(self.input_P2, self.fake_P2), (self.input_P1, self.fake_P1)]
         for pair in pairs:
@@ -95,7 +95,7 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
             loss = (loss_real + loss_fake)
             loss_D += loss
 
-        self.loss_D = loss_D.item() / len(pairs) * self.lambda_GAN
+        self.loss_D = loss_D / len(pairs) * self.lambda_GAN
         if backward:
             self.loss_D.backward()
 
@@ -107,10 +107,9 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
 
         # Adversarial loss
         self.loss_adv = 0.
-
-        loss_adv_1 = self.criterion_GAN(self.netD(self.fake_P2), True)
+        loss_adv_1 = - self.netD(self.fake_P2).mean()
         self.loss_adv += loss_adv_1
-        loss_adv_2 = self.criterion_GAN(self.netD(self.fake_P1), True)
+        loss_adv_2 = - self.netD(self.fake_P1).mean()
         self.loss_adv += loss_adv_2
         self.loss_adv /= 2.
 
@@ -163,6 +162,17 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
             self.optimizer_D.zero_grad()
             self.backward_D(backward=backward)
             self.optimizer_D.step()
+
+    def update_learning_rate(self):
+        for scheduler in self.schedulers:
+            scheduler.step()
+        lr = self.optimizers[0].param_groups[0]['lr']
+        print('learning rate = %.7f' % lr)
+
+        epoch = scheduler.last_epoch
+        progress = min(epoch, self.opt.niter) / self.opt.niter
+        self.lambda_percep = 0.2 + progress * 0.6
+        self.lambda_GAN = (0.2 + 0.8 * progress) * self.opt.lambda_GAN
 
     def save(self, label, epoch, total_steps):
         self.save_network(self.netG, 'netG', label, self.gpu_ids, epoch, total_steps)
