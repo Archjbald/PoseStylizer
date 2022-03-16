@@ -98,7 +98,8 @@ class TransferCycleModel(BaseModel):
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :18]
         if self.opt.dataset_mode in ['keypoint_segmentation']:
             self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
-        self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
+        print(input['P1_path'], input['P2_path'])
+        self.image_paths = input['P1_path'][0] + '___' + [0]
 
         if len(self.gpu_ids) > 0:
             self.input_P1 = self.input_P1.cuda()
