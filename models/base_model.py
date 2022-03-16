@@ -80,7 +80,8 @@ class BaseModel(nn.Module):
             except RuntimeError as err:
                 msg = str(err).split('\n')
                 missing = msg[1].split(': ')[1].split(', ')
-                unexpect = msg[2].split(': ')[1].split(', ')
+                if len(msg) > 2:
+                    unexpect = msg[2].split(': ')[1].split(', ')
 
                 raise err
 
