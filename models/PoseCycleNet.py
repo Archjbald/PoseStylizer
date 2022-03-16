@@ -96,9 +96,6 @@ class TransferCycleModel(BaseModel):
     def set_input(self, input):
         self.input_P1, self.input_BP1 = input['P1'], input['BP1'][:, :18]
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :18]
-        if self.opt.dataset_mode in ['keypoint_segmentation']:
-            self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
-        print(input['P1_path'], input['P2_path'])
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
 
         if len(self.gpu_ids) > 0:
@@ -106,9 +103,6 @@ class TransferCycleModel(BaseModel):
             self.input_BP1 = self.input_BP1.cuda()
             self.input_P2 = self.input_P2.cuda()
             self.input_BP2 = self.input_BP2.cuda()
-            if self.opt.dataset_mode in ['keypoint_segmentation']:
-                self.input_MP1 = self.input_MP1.cuda()
-                self.input_MP2 = self.input_MP2.cuda()
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
@@ -163,40 +157,39 @@ class TransferCycleModel(BaseModel):
         lambda_cycle = self.lambda_cycle
 
         # Identity loss
+        self.loss_idt = 0.
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
             self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt_1 = self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
             self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt_2 = self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
-        else:
-            self.loss_idt_1 = 0
-            self.loss_idt_2 = 0
+            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
+            self.loss_idt /= 2.
 
         # Adversarial loss
-        self.loss_G_1 = 0
-        self.loss_G_2 = 0
+        self.loss_adv = 0.
+        loss_adv_1 = 0.
+        loss_adv_2 = 0.
         if self.opt.with_D_PB:
-            self.loss_G_GAN_PB_1 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PB_1
-            self.loss_G_GAN_PB_2 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
-            self.loss_G_2 += self.loss_G_GAN_PB_2
+            loss_adv_1 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
+            loss_adv_2 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
 
         if self.opt.with_D_PP:
-            self.loss_G_GAN_PP_1 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
-            self.loss_G_GAN_PP_2 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PP_1
-            self.loss_G_2 += self.loss_G_GAN_PP_2
+            loss_adv_1 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
+            loss_adv_2 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
 
+        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2.
+
+        self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle_1 = self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
         # Backward cycle loss || G_A(G_B(B)) - B||
-        self.loss_cycle_2 = self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_cycle
+        self.loss_cycle /= 2.
 
         # combined loss and calculate gradients
-        self.loss_G = (self.loss_G_1 + self.loss_G_1 + self.loss_cycle_1 + self.loss_cycle_2 +
-                       self.loss_idt_1 + self.loss_idt_2)
+        self.loss_G = (self.loss_adv + self.loss_cycle + self.loss_idt)
         if backward:
             self.loss_G.backward()
 
@@ -232,12 +225,9 @@ class TransferCycleModel(BaseModel):
         if self.opt.with_D_PB:
             ret_errors['D_PB'] = self.loss_D_PB
 
-        ret_errors['G_1'] = self.loss_G_1.item()
-        ret_errors['G_2'] = self.loss_G_2.item()
-        ret_errors['cycle_1'] = self.loss_cycle_1.item()
-        ret_errors['cycle_2'] = self.loss_cycle_2.item()
-        ret_errors['idt_1'] = self.loss_idt_1.item()
-        ret_errors['idt_2'] = self.loss_idt_2.item()
+        ret_errors['adv'] = self.loss_adv.item()
+        ret_errors['cycle'] = self.loss_cycle.item()
+        ret_errors['idt'] = self.loss_idt.item()
         return ret_errors
 
     def get_current_p2(self):
@@ -248,36 +238,18 @@ class TransferCycleModel(BaseModel):
         height, width = self.input_P1.size(2), self.input_P1.size(3)
         input_P1 = util.tensor2im(self.input_P1.data)
         input_P2 = util.tensor2im(self.input_P2.data)
+        fake_P2 = util.tensor2im(self.fake_P2.data)
+        rec_P1 = util.tensor2im(self.rec_P1.data)
 
         input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
         input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
 
-        fake_P2 = util.tensor2im(self.fake_P2.data)
-        vis = np.zeros((height, width * 5, 3)).astype(np.uint8)  # h, w, c
-        vis[:, :width, :] = input_P1
-        vis[:, width:width * 2, :] = input_BP1
-        vis[:, width * 2:width * 3, :] = input_P2
-        vis[:, width * 3:width * 4, :] = input_BP2
-        vis[:, width * 4:, :] = fake_P2
+        fake_BP2 = util.draw_pose_from_map(self.fake_BP2.data)[0]
 
-        ret_visuals = OrderedDict([('vis', vis)])
-
-        return ret_visuals
-
-    def get_current_visuals_widerpose(self):
-        height, width = self.input_P1.size(2), self.input_P1.size(3)
-        input_P1 = util.tensor2im(self.input_P1.data)
-        input_P2 = util.tensor2im(self.input_P2.data)
-
-        input_BP1 = util.draw_pose_from_map_wider(self.input_BP1.data)[0]
-        input_BP2 = util.draw_pose_from_map_wider(self.input_BP2.data)[0]
-
-        vis = np.zeros((height, width * 5, 3)).astype(np.uint8)  # h, w, c
-        vis[:, :width, :] = input_P1
-        vis[:input_BP1.shape[0], width:width + input_BP1.shape[1], :] = input_BP1
-        vis[:, width * 2:width * 3, :] = input_P2
-        vis[:input_BP2.shape[0], width * 3:width * 3 + +input_BP2.shape[1], :] = input_BP2
-        vis[:, width * 4:, :] = 255
+        imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_BP2, rec_P1]
+        vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
+        for i, img in enumerate(imgs):
+            vis[:, width*i:width * (i+1), :] = img
 
         ret_visuals = OrderedDict([('vis', vis)])
 

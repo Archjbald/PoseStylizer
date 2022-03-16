@@ -124,6 +124,7 @@ class BaseOptions():
         else:
             raise ValueError(self.opt.CUT_mode)
 
+
         # Path
         if not self.opt.pairLst:
             self.opt.pairLst = os.path.join(self.opt.dataroot,

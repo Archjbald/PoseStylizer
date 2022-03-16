@@ -97,8 +97,6 @@ class TransferCUTModel(BaseModel):
     def set_input(self, input):
         self.input_P1, self.input_BP1 = input['P1'], input['BP1']
         self.input_P2, self.input_BP2 = input['P2'], input['BP2']
-        if self.opt.dataset_mode in ['keypoint_segmentation']:
-            self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
 
         if len(self.gpu_ids) > 0:
@@ -106,9 +104,6 @@ class TransferCUTModel(BaseModel):
             self.input_BP1 = self.input_BP1.cuda()
             self.input_P2 = self.input_P2.cuda()
             self.input_BP2 = self.input_BP2.cuda()
-            if self.opt.dataset_mode in ['keypoint_segmentation']:
-                self.input_MP1 = self.input_MP1.cuda()
-                self.input_MP2 = self.input_MP2.cuda()
 
     def data_dependent_initialize(self, data):
         """
@@ -321,7 +316,7 @@ class TransferCUTModel(BaseModel):
         if not self.opt.no_nce_idt and self.opt.lambda_NCE > 0.0:
             ret_errors['loss_NCE_Y'] = self.loss_NCE_Y
         ret_errors['loss_NCE_both'] = self.loss_NCE_both
-        ret_errors['G'] = self.loss_G
+        ret_errors['adv'] = self.loss_G
 
         return ret_errors
 

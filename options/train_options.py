@@ -77,6 +77,9 @@ class TrainOptions(BaseOptions):
     def parse(self):
         BaseOptions.parse(self)
 
+        if self.opt.debug:
+            self.opt.epoch_size = min(self.opt.epoch_size, 20)
+
         if self.opt.epoch_size % self.opt.batchSize:
             self.opt.epoch_size = (self.opt.epoch_size // self.opt.batchSize + 1) * self.opt.batchSize
 

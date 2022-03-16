@@ -39,68 +39,56 @@ class TransferCycleHPEModel(TransferCycleModel):
         lambda_HPE = self.lambda_HPE
 
         # Adversarial loss
-        self.loss_G_1 = 0
-        self.loss_G_2 = 0
-        GAN_ratio = self.opt.with_D_PP + self.opt.with_D_PB
+        self.loss_adv = 0.
+        loss_adv_1 = 0.
+        loss_adv_2 = 0.
         if self.opt.with_D_PB:
-            self.loss_G_GAN_PB_1 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PB_1 * GAN_ratio
-            self.loss_G_GAN_PB_2 = self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
-            self.loss_G_2 += self.loss_G_GAN_PB_2 * GAN_ratio
+            loss_adv_1 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
+            loss_adv_2 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
 
         if self.opt.with_D_PP:
-            self.loss_G_GAN_PP_1 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
-            self.loss_G_GAN_PP_2 = self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
-            self.loss_G_1 += self.loss_G_GAN_PP_1 * GAN_ratio
-            self.loss_G_2 += self.loss_G_GAN_PP_2 * GAN_ratio
+            loss_adv_1 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
+            loss_adv_2 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
+
+        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2.
 
         # Fake_qualities
-        quality_1 = 1. - self.loss_G_1.item() / GAN_ratio if self.loss_G_1 else 1.
-        quality_2 = 1. - self.loss_G_2.item() / GAN_ratio if self.loss_G_2 else 1.
+        quality_1 = 1. - loss_adv_1.item()
+        quality_2 = 1. - loss_adv_2.item()
 
         # Identity loss
+        self.loss_idt = 0.
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
             self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt_1 = self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
             self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt_2 = self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
-        else:
-            self.loss_idt_1 = 0
-            self.loss_idt_2 = 0
+            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
+            self.loss_idt /= 2.
 
         # HPE Loss
-        self.loss_HPE_1 = 0
-        self.loss_HPE_2 = 0
-        self.loss_HPE_1_cycle = 0
-        self.loss_HPE_2_cycle = 0
+        self.loss_HPE = 0.
         if lambda_HPE:
-            self.loss_HPE_1 = self.criterion_HPE(self.fake_BP1, self.input_BP1) * lambda_HPE
-            self.loss_HPE_2 = self.criterion_HPE(self.fake_BP2, self.input_BP2) * lambda_HPE
+            self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.input_BP1) * lambda_HPE
+            self.loss_HPE += self.criterion_HPE(self.fake_BP2, self.input_BP2) * lambda_HPE
+            self.loss_HPE /= 2.
 
-            with torch.no_grad():
-                self.loss_HPE_1_cycle = self.criterion_HPE(self.netHPE(self.rec_P1),
-                                                           self.input_BP1) * lambda_HPE * quality_1
-                self.loss_HPE_2_cycle = self.criterion_HPE(self.netHPE(self.rec_P2),
-                                                           self.input_BP2) * lambda_HPE * quality_2
-
+        self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle_1 = self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
         # Backward cycle loss || G_A(G_B(B)) - B||
-        self.loss_cycle_2 = self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_cycle
+        self.loss_cycle /= 2.
 
         # combined loss and calculate gradients
-        self.loss_G = (self.loss_G_1 + self.loss_G_1 + self.loss_cycle_1 + self.loss_cycle_2 +
-                       self.loss_idt_1 + self.loss_idt_2 + self.loss_HPE_1 + self.loss_HPE_2 +
-                       self.loss_HPE_1_cycle + self.loss_HPE_2_cycle)
+        self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE
         if backward:
             self.loss_G.backward()
 
     def get_current_errors(self):
         ret_errors = TransferCycleModel.get_current_errors(self)
         if self.lambda_HPE:
-            ret_errors['HPE_1'] = self.loss_HPE_1.item()
-            ret_errors['HPE_2'] = self.loss_HPE_2.item()
+            ret_errors['HPE'] = self.loss_HPE.item()
 
         return ret_errors

@@ -44,7 +44,7 @@ class BaseModel(nn.Module):
     def get_current_errors(self):
         return {}
 
-    def save(self, label):
+    def save(self, label, epoch, total_steps):
         pass
 
     # helper saving function that can be used by subclasses
