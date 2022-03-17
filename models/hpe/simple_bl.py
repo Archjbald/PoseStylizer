@@ -102,5 +102,7 @@ def get_pose_net():
     model = PoseResNet(block_class, layers)
 
     model.init_weights('assets/coco_vis2_0_novis.pth.tar')
+    for p in model.parameters():
+        p.requires_grad = False
     model.cuda()
     return model
