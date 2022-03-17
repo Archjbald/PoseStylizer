@@ -109,10 +109,6 @@ class TransferModel(BaseModel):
             G_input.append(self.input_MP1)
         self.fake_P2 = self.netG(G_input)
 
-    def test(self):
-        with torch.no_grad():
-            self.forward()
-
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
             pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))

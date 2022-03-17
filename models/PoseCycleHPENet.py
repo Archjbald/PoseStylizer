@@ -32,7 +32,8 @@ class TransferCycleHPEModel(TransferCycleModel):
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
-        return self.criterion_HPE(fake * annotated[:, :, None, None], real) * self.lambda_HPE
+        loss = self.criterion_HPE(fake * annotated[:, :, None, None], real) * self.lambda_HPE
+        return loss
 
     def backward_G(self, backward=True):
         """Calculate the loss for generators G_A and G_B"""

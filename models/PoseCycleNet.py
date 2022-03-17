@@ -111,10 +111,6 @@ class TransferCycleModel(BaseModel):
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
         self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
 
-    def test(self):
-        with torch.no_grad():
-            self.forward()
-
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
         pred_real = netD(real)
@@ -249,7 +245,7 @@ class TransferCycleModel(BaseModel):
         imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_BP2, rec_P1]
         vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
         for i, img in enumerate(imgs):
-            vis[:, width*i:width * (i+1), :] = img
+            vis[:, width * i:width * (i + 1), :] = img
 
         ret_visuals = OrderedDict([('vis', vis)])
 

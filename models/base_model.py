@@ -29,7 +29,8 @@ class BaseModel(nn.Module):
 
     # used in test time, no backprop
     def test(self):
-        pass
+        with torch.no_grad():
+            self.forward()
 
     # get image paths
     def get_image_paths(self):

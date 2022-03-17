@@ -80,10 +80,6 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
 
         print('---------- Networks initialized -------------')
 
-    def test(self):
-        with torch.no_grad():
-            self.forward()
-
     # D: take(P, B) as input
     def backward_D(self, backward=True):
         loss_D = 0.

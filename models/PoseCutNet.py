@@ -154,10 +154,6 @@ class TransferCUTModel(BaseModel):
         if not self.opt.no_nce_idt:
             self.idt_P2 = output[self.input_P1.size(0):]
 
-    def test(self):
-        with torch.no_grad():
-            self.forward()
-
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
         pred_real = netD(real)
