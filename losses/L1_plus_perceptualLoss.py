@@ -33,13 +33,13 @@ class PerceptualLoss(nn.Module):
         mean[0] = 0.485
         mean[1] = 0.456
         mean[2] = 0.406
-        mean = mean.resize(1, 3, 1, 1).cuda()
+        mean = mean.view(1, 3, 1, 1).cuda()
 
         std = torch.FloatTensor(3)
         std[0] = 0.229
         std[1] = 0.224
         std[2] = 0.225
-        std = std.resize(1, 3, 1, 1).cuda()
+        std = std.view(1, 3, 1, 1).cuda()
 
         fake_p2_norm = (inputs + 1) / 2  # [-1, 1] => [0, 1]
         fake_p2_norm = (fake_p2_norm - mean) / std
