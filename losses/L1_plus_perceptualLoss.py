@@ -7,11 +7,10 @@ import torch.nn.functional as F
 import torchvision.models as models
 
 
-class L1_plus_perceptualLoss(nn.Module):
-    def __init__(self, lambda_L1, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1):
-        super(L1_plus_perceptualLoss, self).__init__()
+class PerceptualLoss(nn.Module):
+    def __init__(self, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1=False):
+        super(PerceptualLoss, self).__init__()
 
-        self.lambda_L1 = lambda_L1
         self.lambda_perceptual = lambda_perceptual
         self.gpu_ids = gpu_ids
 
@@ -25,11 +24,9 @@ class L1_plus_perceptualLoss(nn.Module):
                 break
         self.vgg_submodel = torch.nn.DataParallel(self.vgg_submodel, device_ids=gpu_ids).cuda()
 
-    def forward(self, inputs, targets, mask=None):
-        if self.lambda_L1 == 0 and self.lambda_perceptual == 0:
+    def forward(self, inputs, targets):
+        if self.lambda_perceptual == 0:
             return torch.zeros(1).cuda(), torch.zeros(1), torch.zeros(1)
-        # normal L1
-        loss_l1 = F.l1_loss(inputs, targets) * self.lambda_L1
 
         # perceptual L1
         mean = torch.FloatTensor(3)
@@ -54,17 +51,30 @@ class L1_plus_perceptualLoss(nn.Module):
         input_p2_norm = self.vgg_submodel(input_p2_norm)
         input_p2_norm_no_grad = input_p2_norm.detach()
 
-        if mask is not None:
-            mask = F.interpolate(mask, size=(fake_p2_norm.shape[2], fake_p2_norm.shape[3]), align_corners=False)
-            fake_p2_norm = fake_p2_norm * mask
-            input_p2_norm_no_grad = input_p2_norm_no_grad * mask
-
         if self.percep_is_l1 == 1:
             # use l1 for perceptual loss
             loss_perceptual = F.l1_loss(fake_p2_norm, input_p2_norm_no_grad) * self.lambda_perceptual
         else:
             # use l2 for perceptual loss
             loss_perceptual = F.mse_loss(fake_p2_norm, input_p2_norm_no_grad) * self.lambda_perceptual
+
+        return loss_perceptual
+
+
+class L1_plus_perceptualLoss(nn.Module):
+    def __init__(self, lambda_L1, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1):
+        super(L1_plus_perceptualLoss, self).__init__()
+
+        self.lambda_L1 = lambda_L1
+        self.perceptual_loss = PerceptualLoss(lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1)
+
+    def forward(self, inputs, targets):
+        if self.lambda_L1 == 0 and self.lambda_perceptual == 0:
+            return torch.zeros(1).cuda(), torch.zeros(1), torch.zeros(1)
+        # normal L1
+        loss_l1 = F.l1_loss(inputs, targets) * self.lambda_L1
+
+        loss_perceptual = self.perceptual_loss(inputs, targets)
 
         loss = loss_l1 + loss_perceptual
 

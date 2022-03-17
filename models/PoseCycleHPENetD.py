@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 import torch
-
+from torch.autograd import Variable, grad
 from .PoseCycleHPENet import TransferCycleHPEModel
 from .base_model import BaseModel
 from . import networks
@@ -9,6 +9,7 @@ from . import networks
 from util.image_pool import ImagePool
 from .hpe.simple_bl import get_pose_net
 from .PoseCycleHPENet import TransferCycleHPEModel
+from losses.L1_plus_perceptualLoss import PerceptualLoss
 
 
 class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
@@ -51,9 +52,13 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
             self.old_lr = opt.lr
             self.fake_pool = ImagePool(opt.pool_size)
             # define loss functions
-            self.criterion_cycle = torch.nn.L1Loss()
             self.criterion_idt = torch.nn.L1Loss()
             self.criterion_HPE = torch.nn.MSELoss()
+
+            if opt.L1_type == 'l1_plus_perL1':
+                self.criterion_cycle = PerceptualLoss(1., opt.perceptual_layers, self.gpu_ids)
+            else:
+                self.criterion_cycle = torch.nn.L1Loss()
 
             # lambdas:
             lambdas = ['GAN', 'cycle', 'identity']
@@ -91,8 +96,20 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
             # Fake
             pred_fake = self.netD(fake.detach())
             loss_fake = pred_fake.mean()
+
+            # Gradient penalty
+            eps = Variable(torch.rand(1), requires_grad=True)
+            eps = eps.expand(real.size())
+            eps = eps.cuda()
+            x_tilde = eps * real + (1 - eps) * fake.detach()
+            x_tilde = x_tilde.cuda()
+            pred_tilde = self.netD(x_tilde)
+            gradients = grad(outputs=pred_tilde, inputs=x_tilde,
+                             grad_outputs=torch.ones(pred_tilde.size()).cuda(),
+                             create_graph=True, retain_graph=True, only_inputs=True)[0]
+
             # Combined loss
-            loss = (loss_real + loss_fake)
+            loss = (loss_real + loss_fake) + 10 * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
             loss_D += loss
 
         self.loss_D = loss_D / len(pairs) * self.lambda_GAN
@@ -103,7 +120,6 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
-        lambda_HPE = self.lambda_HPE
 
         # Adversarial loss
         self.loss_adv = 0.
@@ -130,9 +146,9 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        if lambda_HPE > 0:
-            self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.input_BP1) * lambda_HPE
-            self.loss_HPE += self.criterion_HPE(self.fake_BP2, self.input_BP2) * lambda_HPE
+        if self.lambda_HPE:
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.input_BP1)
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.input_BP2)
             self.loss_HPE /= 2.
 
         self.loss_cycle = 0.

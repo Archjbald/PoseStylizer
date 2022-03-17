@@ -32,11 +32,14 @@ class TransferCycleHPEModel(TransferCycleModel):
             self.fake_BP1 = self.netHPE(self.fake_P1)
         self.rec_P2 = self.netG([self.fake_P1, self.fake_BP1, self.input_BP2])  # G_A(G_B(B))
 
+    def evaluate_HPE(self, fake, real):
+        annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
+        return self.criterion_HPE(fake * annotated[:, :, None, None], real) * self.lambda_HPE
+
     def backward_G(self, backward=True):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
-        lambda_HPE = self.lambda_HPE
 
         # Adversarial loss
         self.loss_adv = 0.
@@ -69,9 +72,9 @@ class TransferCycleHPEModel(TransferCycleModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        if lambda_HPE:
-            self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.input_BP1) * lambda_HPE
-            self.loss_HPE += self.criterion_HPE(self.fake_BP2, self.input_BP2) * lambda_HPE
+        if self.lambda_HPE:
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.input_BP1)
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.input_BP2)
             self.loss_HPE /= 2.
 
         self.loss_cycle = 0.
