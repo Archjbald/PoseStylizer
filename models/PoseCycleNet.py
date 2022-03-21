@@ -6,6 +6,7 @@ from .base_model import BaseModel
 from util.image_pool import ImagePool
 from . import networks
 import util.util as util
+from losses.L1_plus_perceptualLoss import PerceptualLoss
 
 
 class TransferCycleModel(BaseModel):
@@ -65,6 +66,11 @@ class TransferCycleModel(BaseModel):
             self.criterion_GAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
             self.criterion_cycle = torch.nn.L1Loss()
             self.criterion_idt = torch.nn.L1Loss()
+
+            if opt.L1_type == 'l1_plus_perL1':
+                self.criterion_cycle = PerceptualLoss(1., opt.perceptual_layers, self.gpu_ids)
+            else:
+                self.criterion_cycle = torch.nn.L1Loss()
 
             # lambdas:
             lambdas = ['GAN', 'cycle', 'identity']
