@@ -24,11 +24,13 @@ class TransferCycleHPEModel(TransferCycleModel):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
         self.fake_BP2 = self.netHPE(self.fake_P2)
-        self.rec_P1 = self.netG([self.fake_P2, self.fake_BP2, self.input_BP1])  # G_B(G_A(A))
+        # self.rec_P1 = self.netG([self.fake_P2, self.fake_BP2, self.input_BP1])  # G_B(G_A(A))
+        self.rec_P1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
 
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
         self.fake_BP1 = self.netHPE(self.fake_P1)
-        self.rec_P2 = self.netG([self.fake_P1, self.fake_BP1, self.input_BP2])  # G_A(G_B(B))
+        # self.rec_P2 = self.netG([self.fake_P1, self.fake_BP1, self.input_BP2])  # G_A(G_B(B))
+        self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
