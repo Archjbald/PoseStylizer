@@ -59,6 +59,7 @@ class BaseOptions():
         self.parser.add_argument('--padding_type', type=str, default='reflect', help='# of input image channels')
         self.parser.add_argument('--pairLst', type=str, default='', help='market pairs')
 
+        self.parser.add_argument('--with_D_simple', type=int, default=1, help='use simple D')
         self.parser.add_argument('--with_D_PP', type=int, default=1, help='use D to judge P and P is pair or not')
         self.parser.add_argument('--with_D_PB', type=int, default=1, help='use D to judge P and B is pair or not')
 
@@ -76,6 +77,9 @@ class BaseOptions():
 
         self.parser.add_argument('--init_gain', type=float, default=0.02,
                                  help='scaling factor for normal, xavier and orthogonal.')
+
+        self.parser.add_argument('--fake_bp_cycle', action='store_true',
+                                 help='Use predicted BP for cycle instead of ground truth')
 
         self.parser.add_argument('--no_nce_idt', action='store_true',
                                  help='not use NCE loss for identity mapping: NCE(G(Y), Y))')

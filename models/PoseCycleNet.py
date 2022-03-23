@@ -33,6 +33,13 @@ class TransferCycleModel(BaseModel):
 
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
+            if opt.with_D_simple:
+                self.netD = networks.define_D(opt.P_input_nc, opt.ndf,
+                                              opt.which_model_netD,
+                                              opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
+                                              not opt.no_dropout_D,
+                                              n_downsampling=opt.D_n_downsampling)
+                self.model_names.append('netD')
             if opt.with_D_PB:
                 self.netD_PB = networks.define_D(opt.P_input_nc + opt.BP_input_nc, opt.ndf,
                                                  opt.which_model_netD,
@@ -53,6 +60,8 @@ class TransferCycleModel(BaseModel):
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'netG', which_epoch)
             if self.isTrain:
+                if opt.with_D_simple:
+                    self.load_network(self.netD, 'netD', which_epoch)
                 if opt.with_D_PB:
                     self.load_network(self.netD_PB, 'netD_PB', which_epoch)
                 if opt.with_D_PP:
@@ -60,8 +69,6 @@ class TransferCycleModel(BaseModel):
 
         if self.isTrain:
             self.old_lr = opt.lr
-            self.fake_PP_pool = ImagePool(opt.pool_size)
-            self.fake_PB_pool = ImagePool(opt.pool_size)
             # define loss functions
             self.criterion_GAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
             self.criterion_cycle = torch.nn.L1Loss()
@@ -80,16 +87,24 @@ class TransferCycleModel(BaseModel):
 
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            if opt.with_D_simple:
+                self.fake_pool = ImagePool(opt.pool_size)
+                self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr,
+                                                    betas=(opt.beta1, 0.999))
             if opt.with_D_PB:
+                self.fake_PB_pool = ImagePool(opt.pool_size)
                 self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr,
                                                        betas=(opt.beta1, 0.999))
             if opt.with_D_PP:
+                self.fake_PP_pool = ImagePool(opt.pool_size)
                 self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr,
                                                        betas=(opt.beta1, 0.999))
 
             self.optimizers = []
             self.schedulers = []
             self.optimizers.append(self.optimizer_G)
+            if opt.with_D_simple:
+                self.optimizers.append(self.optimizer_D)
             if opt.with_D_PB:
                 self.optimizers.append(self.optimizer_D_PB)
             if opt.with_D_PP:
@@ -131,6 +146,15 @@ class TransferCycleModel(BaseModel):
             loss_D.backward()
 
         return loss_D
+
+    def backward_D(self, backward=True):
+        loss_D = 0
+        pairs = [(self.input_P2, self.fake_P2), (self.input_P1, self.fake_P1)]
+        for pair in pairs:
+            real = torch.cat((pair[0], pair[1]), 1)
+            fake = self.fake_pool.query(torch.cat((pair[2], pair[1]), 1).data)
+            loss_D += self.backward_D_basic(self.netD, real, fake, backward=backward)
+        self.loss_D = loss_D.item()
 
     # D: take(P, B) as input
     def backward_D_PB(self, backward=True):

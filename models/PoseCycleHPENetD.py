@@ -46,7 +46,7 @@ class TransferCycleHPEModelD(TransferCycleHPEModel, BaseModel):
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'netG', which_epoch)
             if self.isTrain:
-                self.load_network(self.netD_PB, 'netD', which_epoch)
+                self.load_network(self.netD, 'netD', which_epoch)
 
         if self.isTrain:
             self.old_lr = opt.lr
