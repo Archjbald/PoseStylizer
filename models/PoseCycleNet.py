@@ -154,8 +154,8 @@ class TransferCycleModel(BaseModel):
         loss_D = 0
         pairs = [(self.input_P2, self.fake_P2), (self.input_P1, self.fake_P1)]
         for pair in pairs:
-            real = torch.cat((pair[0], pair[1]), 1)
-            fake = self.fake_pool.query(torch.cat((pair[2], pair[1]), 1).data)
+            real = pair[0]
+            fake = self.fake_pool.query(pair[1].data)
             loss_D += self.backward_D_basic(self.netD, real, fake, backward=backward)
         self.loss_D = loss_D.item()
 

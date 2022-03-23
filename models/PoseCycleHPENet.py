@@ -46,6 +46,11 @@ class TransferCycleHPEModel(TransferCycleModel):
         self.loss_adv = 0.
         loss_adv_1 = 0.
         loss_adv_2 = 0.
+
+        if self.opt.with_D_simple:
+            loss_adv_1 += self.criterion_GAN(self.netD(self.fake_P2), True)
+            loss_adv_2 += self.criterion_GAN(self.netD(self.fake_P1), True)
+
         if self.opt.with_D_PB:
             loss_adv_1 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
             loss_adv_2 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
