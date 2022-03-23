@@ -56,6 +56,7 @@ class TransferCycleModel(BaseModel):
                                                  n_downsampling=opt.D_n_downsampling)
                 self.model_names.append('netD_PP')
 
+        self.netD_list = [eval(f'self.{name}') for name in self.model_names if 'netD' in name]
         which_epoch = opt.which_epoch
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'netG', which_epoch)
@@ -197,6 +198,10 @@ class TransferCycleModel(BaseModel):
         self.loss_adv = 0.
         loss_adv_1 = 0.
         loss_adv_2 = 0.
+        if self.opt.with_D_simple:
+            loss_adv_1 += self.criterion_GAN(self.netD(self.fake_P2), True)
+            loss_adv_2 += self.criterion_GAN(self.netD(self.fake_P1), True)
+
         if self.opt.with_D_PB:
             loss_adv_1 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1)), True)
             loss_adv_2 += self.criterion_GAN(self.netD_PB(torch.cat((self.fake_P1, self.input_BP1), 1)), True)
@@ -224,12 +229,19 @@ class TransferCycleModel(BaseModel):
         # forward
         self.forward()  # compute fake images and reconstruction images.
         # G  # Ds require no gradients when optimizing Gs
-        self.set_requires_grad([self.netD_PB, self.netD_PP], False)
+        self.set_requires_grad(self.netD_list, False)
         self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
         self.backward_G(backward=backward)  # calculate gradients for G_A and G_B
         self.optimizer_G.step()  # update G_A and G_B's weights
 
-        self.set_requires_grad([self.netD_PB, self.netD_PP], True)
+        self.set_requires_grad(self.netD_list, True)
+        # D
+        if self.opt.with_D_simple:
+            for i in range(self.opt.DG_ratio):
+                self.optimizer_D.zero_grad()
+                self.backward_D(backward=backward)
+                self.optimizer_D.step()
+
         # D_P
         if self.opt.with_D_PP:
             for i in range(self.opt.DG_ratio):
@@ -246,6 +258,8 @@ class TransferCycleModel(BaseModel):
 
     def get_current_errors(self):
         ret_errors = OrderedDict()
+        if self.opt.with_D_simple:
+            ret_errors['D'] = self.loss_D
         if self.opt.with_D_PP:
             ret_errors['D_PP'] = self.loss_D_PP
         if self.opt.with_D_PB:
@@ -283,6 +297,8 @@ class TransferCycleModel(BaseModel):
 
     def save(self, label, epoch, total_steps):
         self.save_network(self.netG, 'netG', label, self.gpu_ids, epoch, total_steps)
+        if self.opt.with_D:
+            self.save_network(self.netD, 'netD', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PB:
             self.save_network(self.netD_PB, 'netD_PB', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PP:

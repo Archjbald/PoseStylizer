@@ -139,7 +139,7 @@ def train(opt, model, train_dataset, val_dataset):
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
-                model.cleanse()
+                # model.cleanse()
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
 
         # print time used
