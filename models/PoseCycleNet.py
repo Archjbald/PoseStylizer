@@ -32,6 +32,7 @@ class TransferCycleModel(BaseModel):
                                       self.gpu_ids, n_downsampling=opt.G_n_downsampling, opt=opt)
 
         if self.isTrain:
+            self.netD_list = []
             use_sigmoid = opt.no_lsgan
             if opt.with_D_simple:
                 self.netD = networks.define_D(opt.P_input_nc, opt.ndf,
@@ -40,6 +41,7 @@ class TransferCycleModel(BaseModel):
                                               not opt.no_dropout_D,
                                               n_downsampling=opt.D_n_downsampling)
                 self.model_names.append('netD')
+                self.netD_list.append(self.netD)
             if opt.with_D_PB:
                 self.netD_PB = networks.define_D(opt.P_input_nc + opt.BP_input_nc, opt.ndf,
                                                  opt.which_model_netD,
@@ -47,7 +49,7 @@ class TransferCycleModel(BaseModel):
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
                 self.model_names.append('netD_PB')
-
+                self.netD_list.append(self.netD_PB)
             if opt.with_D_PP:
                 self.netD_PP = networks.define_D(opt.P_input_nc + opt.P_input_nc, opt.ndf,
                                                  opt.which_model_netD,
@@ -55,8 +57,8 @@ class TransferCycleModel(BaseModel):
                                                  not opt.no_dropout_D,
                                                  n_downsampling=opt.D_n_downsampling)
                 self.model_names.append('netD_PP')
+                self.netD_list.append(self.netD_PP)
 
-        self.netD_list = [eval(f'self.{name}') for name in self.model_names if 'netD' in name]
         which_epoch = opt.which_epoch
         if not self.isTrain or opt.continue_train:
             self.load_network(self.netG, 'netG', which_epoch)
