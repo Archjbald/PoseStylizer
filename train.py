@@ -99,12 +99,6 @@ def train(opt, model, train_dataset, val_dataset):
                 t = time.time() - iter_start_time
                 visualizer.print_current_errors(epoch, epoch_iter, errors, t)
 
-            # save latest model
-            if total_steps % opt.save_latest_freq == 0 and False:
-                print('saving the latest model (epoch %d, total_steps %d)' %
-                      (epoch, total_steps))
-                model.save('latest', epoch, total_steps)
-
             # debug_gpu_memory(model)
             # print(get_gpu_memory())
 
@@ -121,6 +115,11 @@ def train(opt, model, train_dataset, val_dataset):
         # save images
         save_result = False
         visualizer.display_current_results(model.get_current_visuals(), epoch, save_result)
+
+        # save latest model
+        print('saving the latest model (epoch %d, total_steps %d)' %
+              (epoch, total_steps))
+        model.save('latest', epoch, total_steps)
 
         # save epoch model
         if epoch % opt.save_epoch_freq == 0:
