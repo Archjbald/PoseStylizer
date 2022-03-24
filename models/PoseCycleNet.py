@@ -299,7 +299,7 @@ class TransferCycleModel(BaseModel):
 
     def save(self, label, epoch, total_steps):
         self.save_network(self.netG, 'netG', label, self.gpu_ids, epoch, total_steps)
-        if self.opt.with_D:
+        if self.opt.with_D_simple:
             self.save_network(self.netD, 'netD', label, self.gpu_ids, epoch, total_steps)
         if self.opt.with_D_PB:
             self.save_network(self.netD_PB, 'netD_PB', label, self.gpu_ids, epoch, total_steps)
