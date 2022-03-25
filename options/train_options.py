@@ -69,6 +69,8 @@ class TrainOptions(BaseOptions):
                                  help='the cycle loss')
         self.parser.add_argument('--lambda_identity', type=float, default=0.8,
                                  help='the "identity preservation loss"')
+        self.parser.add_argument('--lambda_adversarial', type=float, default=1.,
+                                 help='the "adversarial loss"')
         self.parser.add_argument('--lambda_HPE', type=float, default=0.,
                                  help='the generated keypoint loss')
         self.parser.add_argument('--use_mask', action='store_true',

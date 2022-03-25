@@ -85,7 +85,7 @@ class TransferCycleModel(BaseModel):
                 self.criterion_cycle = torch.nn.L1Loss()
 
             # lambdas:
-            lambdas = ['GAN', 'cycle', 'identity']
+            lambdas = ['GAN', 'cycle', 'identity', 'adversarial']
             for lbd in lambdas:
                 lbd = f'lambda_{lbd}'
                 setattr(self, lbd, getattr(opt, lbd))
@@ -198,6 +198,7 @@ class TransferCycleModel(BaseModel):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
+        lambda_adv = self.lambda_adversarial
 
         # Identity loss
         self.loss_idt = 0.
@@ -226,7 +227,7 @@ class TransferCycleModel(BaseModel):
             loss_adv_1 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
             loss_adv_2 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
 
-        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2.
+        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2. * lambda_adv
 
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||

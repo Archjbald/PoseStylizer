@@ -50,6 +50,7 @@ class TransferCycleHPEModel(TransferCycleModel):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
+        lambda_adv = self.lambda_adversarial
 
         # Adversarial loss
         self.loss_adv = 0.
@@ -68,7 +69,7 @@ class TransferCycleHPEModel(TransferCycleModel):
             loss_adv_1 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1)), True)
             loss_adv_2 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
 
-        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2.
+        self.loss_adv = (loss_adv_1 + loss_adv_2) / 2. * lambda_adv
 
         # Fake_qualities
         quality_1 = 1. - loss_adv_1.item()
