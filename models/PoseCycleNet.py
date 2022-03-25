@@ -125,6 +125,7 @@ class TransferCycleModel(BaseModel):
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
 
         if self.use_mask:
+            print(self.input_P1.shape, util.mask_from_pose(self.input_BP1).shape)
             self.input_P1 *= util.mask_from_pose(self.input_BP1)
             self.input_P2 *= util.mask_from_pose(self.input_BP2)
 
