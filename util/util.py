@@ -9,7 +9,7 @@ import collections
 import subprocess as sp
 import gc
 
-from skimage.draw import disk, line_aa, polygon
+from skimage.draw import disk, line_aa, polygon, polygon2mask
 
 
 # Converts a Tensor into a Numpy array
@@ -208,3 +208,74 @@ def debug_gpu_memory(model):
             for n, t in m.__dict__.items():
                 if torch.is_tensor(t):
                     f.write(f'{n}: {t.shape}\n')
+
+
+def mask_from_pose(pose):
+    thresh = 0.5
+    masks = pose.sum(dim=1) > 0.7
+    rad = (pose > thresh).sum(dim=-1).max().item()
+
+    img_size = pose.shape[-2:]
+    v, kps = pose.view(*pose.shape[:-2], -1).max(dim=-1)
+    kps = torch.stack((kps.div(img_size[1], rounding_mode='trunc'), kps % img_size[1]), -1)
+    v = v > 0.5
+
+    for b, kp in enumerate(kps):
+        points = [kp[i].tolist() for i in [0, 14, 16, 2, 3, 4, 8, 9, 10, 13, 12, 11, 7, 6, 5, 17, 15] if v[b, i]]
+        poly = polygon2mask(list(img_size), points)
+        for p in range(len(points)):
+            pt1 = points[p]
+            pt2 = points[(p + 1) % len(points)]
+            if pt1 == pt2:
+                continue
+            y, x, _ = weighted_line(*pt1, *pt2, rad)
+            in_bound = (x >= 0) * (x < img_size[1]) * (y >= 0) * (y < img_size[0])
+            x = x[in_bound]
+            y = y[in_bound]
+            poly[y, x] = True
+        masks[b] += torch.tensor(poly, device=pose.device)
+
+    return masks
+
+
+def trapezium(y, y0, w):
+    return np.clip(np.minimum(y + 1 + w / 2 - y0, -y + 1 + w / 2 + y0), 0, 1)
+
+
+def weighted_line(r0, c0, r1, c1, w, r_min=0, r_max=np.inf):
+    # The algorithm below works fine if c1 >= c0 and c1-c0 >= abs(r1-r0).
+    # If either of these cases are violated, do some switches.
+    if abs(c1 - c0) < abs(r1 - r0):
+        # Switch x and y, and switch again when returning.
+        xx, yy, val = weighted_line(c0, r0, c1, r1, w, r_min=r_min, r_max=r_max)
+        return yy, xx, val
+
+    # At this point we know that the distance in columns (x) is greater
+    # than that in rows (y). Possibly one more switch if c0 > c1.
+    if c0 > c1:
+        return weighted_line(r1, c1, r0, c0, w, r_min=r_min, r_max=r_max)
+
+    # The following is now always < 1 in abs
+    slope = (r1 - r0) / (c1 - c0)
+
+    # Adjust weight by the slope
+    w *= np.sqrt(1 + np.abs(slope)) / 2
+
+    # We write y as a function of x, because the slope is always <= 1
+    # (in absolute value)
+    x = np.arange(c0, c1 + 1, dtype=float)
+    y = x * slope + (c1 * r0 - c0 * r1) / (c1 - c0)
+
+    # Now instead of 2 values for y, we have 2*np.ceil(w/2).
+    # All values are 1 except the upmost and bottommost.
+    thickness = np.ceil(w / 2)
+    yy = (np.floor(y).reshape(-1, 1) + np.arange(-thickness - 1, thickness + 2).reshape(1, -1))
+    xx = np.repeat(x, yy.shape[1])
+    vals = trapezium(yy, y.reshape(-1, 1), w).flatten()
+    yy = yy.flatten()
+
+    # Exclude useless parts and those outside of the interval
+    # to avoid parts outside the picture
+    mask = np.logical_and.reduce((yy >= r_min, yy < r_max, vals > 0))
+
+    return yy[mask].astype(int), xx[mask].astype(int), vals[mask]

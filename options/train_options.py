@@ -71,6 +71,8 @@ class TrainOptions(BaseOptions):
                                  help='the "identity preservation loss"')
         self.parser.add_argument('--lambda_HPE', type=float, default=0.,
                                  help='the generated keypoint loss')
+        self.parser.add_argument('--use_mask', action='store_true',
+                                 help='mask background')
 
         self.isTrain = True
 

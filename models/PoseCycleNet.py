@@ -70,6 +70,8 @@ class TransferCycleModel(BaseModel):
                 if opt.with_D_PP:
                     self.load_network(self.netD_PP, 'netD_PP', which_epoch)
 
+        self.use_mask = self.opt.use_mask if self.isTrain else False
+
         if self.isTrain:
             self.old_lr = opt.lr
             # define loss functions
@@ -122,6 +124,10 @@ class TransferCycleModel(BaseModel):
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :18]
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
 
+        if self.use_mask:
+            self.input_P1 *= util.mask_from_pose(self.input_BP1)
+            self.input_P2 *= util.mask_from_pose(self.input_BP2)
+
         if len(self.gpu_ids) > 0:
             self.input_P1 = self.input_P1.cuda()
             self.input_BP1 = self.input_BP1.cuda()
@@ -131,9 +137,17 @@ class TransferCycleModel(BaseModel):
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
         self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
+        if self.use_mask:
+            self.fake_P2 *= util.mask_from_pose(self.input_BP2)
         self.rec_P1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
+        if self.use_mask:
+            self.rec_P1 *= util.mask_from_pose(self.input_BP1)
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
+        if self.use_mask:
+            self.fake_P1 *= util.mask_from_pose(self.input_BP1)
         self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
+        if self.use_mask:
+            self.rec_P2 *= util.mask_from_pose(self.input_BP2)
 
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
