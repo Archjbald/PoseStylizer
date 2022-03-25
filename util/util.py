@@ -212,7 +212,7 @@ def debug_gpu_memory(model):
 
 def mask_from_pose(pose):
     thresh = 0.5
-    masks = pose.sum(dim=1) > 0.7
+    masks = pose.sum(dim=1, keepdims=True) > 0.7
     rad = (pose > thresh).sum(dim=-1).max().item()
 
     img_size = pose.shape[-2:]
