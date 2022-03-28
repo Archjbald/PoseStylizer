@@ -51,12 +51,12 @@ class TransferCycleHPEModel(TransferCycleModel):
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
         lambda_adv = self.lambda_adversarial
+        lambda_patch = self.lambda_patch
 
         # Adversarial loss
         self.loss_adv = 0.
         loss_adv_1 = 0.
         loss_adv_2 = 0.
-
         if self.opt.with_D_simple:
             loss_adv_1 += self.criterion_GAN(self.netD(self.fake_P2), True)
             loss_adv_2 += self.criterion_GAN(self.netD(self.fake_P1), True)
@@ -93,6 +93,12 @@ class TransferCycleHPEModel(TransferCycleModel):
             self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.input_BP2)
             self.loss_HPE /= 2.
 
+        # Patch loss
+        self.loss_patch = 0.
+        if lambda_patch > 0:
+            self.loss_patch += self.criterion_patch(self.input_P1, self.input_BP1, self.fake_P2, self.input_BP2)
+            self.loss_patch += self.criterion_patch(self.input_P2, self.input_BP2, self.fake_P1, self.input_BP1)
+
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
         self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
@@ -101,7 +107,7 @@ class TransferCycleHPEModel(TransferCycleModel):
         self.loss_cycle /= 2.
 
         # combined loss and calculate gradients
-        self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE
+        self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE +self.loss_patch
         if backward:
             self.loss_G.backward()
 

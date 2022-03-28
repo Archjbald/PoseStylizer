@@ -7,6 +7,8 @@ import numpy as np
 import torch.nn.functional as F
 import torchvision.transforms.functional as fn
 
+from util.util import get_kps
+
 import sys
 
 
@@ -436,8 +438,8 @@ class PatchSamplePoseF(PatchSampleF):
         if isinstance(num_patches, int):
             num_patches = [max(size * C, num_patches) for size in patch_sizes]
 
-        kps_1, v_1 = get_kps(bp1, W)
-        kps_2, v_2 = get_kps(bp2, W)
+        kps_1, v_1 = get_kps(bp1, w=W)
+        kps_2, v_2 = get_kps(bp2, w=W)
 
         v_12 = (v_1 * v_2).nonzero()
         ratios = scales / torch.tensor([H, W], device=device)
@@ -534,11 +536,3 @@ class PatchSamplePoseF(PatchSampleF):
                 x_sample = x_sample.permute(0, 2, 1).reshape([B, x_sample.shape[-1], H, W])
             return_feats.append(x_sample)
         return return_feats, return_ids
-
-
-def get_kps(bp, w):
-    v, kps = bp.view(*bp.shape[:-2], -1).max(dim=-1)
-    kps = torch.stack((kps.div(w, rounding_mode='trunc'), kps % w), -1)
-    v = v > 0.1
-
-    return kps, v

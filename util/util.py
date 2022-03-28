@@ -210,15 +210,23 @@ def debug_gpu_memory(model):
                     f.write(f'{n}: {t.shape}\n')
 
 
+def get_kps(bp, thresh=0.1, w=None):
+    if w is None:
+        w = bp.shape[-1]
+    v, kps = bp.view(*bp.shape[:-2], -1).max(dim=-1)
+    kps = torch.stack((kps.div(w, rounding_mode='trunc'), kps % w), -1)
+    v = v > thresh
+
+    return kps, v
+
+
 def mask_from_pose(pose):
     thresh = 0.5
     masks = pose.sum(dim=1, keepdims=True) > 0.7
     rad = (pose > thresh).sum(dim=-1).max().item()
 
     img_size = pose.shape[-2:]
-    v, kps = pose.view(*pose.shape[:-2], -1).max(dim=-1)
-    kps = torch.stack((kps.div(img_size[1], rounding_mode='trunc'), kps % img_size[1]), -1)
-    v = v > 0.5
+    kps, v = get_kps(pose, thresh=0.5)
 
     for b, kp in enumerate(kps):
         points = [kp[i].tolist() for i in [0, 14, 16, 2, 3, 4, 8, 9, 10, 13, 12, 11, 7, 6, 5, 17, 15] if v[b, i]]

@@ -7,6 +7,7 @@ from util.image_pool import ImagePool
 from . import networks
 import util.util as util
 from losses.L1_plus_perceptualLoss import PerceptualLoss
+from losses.color_loss import ColorLoss
 
 
 class TransferCycleModel(BaseModel):
@@ -85,10 +86,13 @@ class TransferCycleModel(BaseModel):
                 self.criterion_cycle = torch.nn.L1Loss()
 
             # lambdas:
-            lambdas = ['GAN', 'cycle', 'identity', 'adversarial']
+            lambdas = ['GAN', 'cycle', 'identity', 'adversarial', 'patch']
             for lbd in lambdas:
                 lbd = f'lambda_{lbd}'
                 setattr(self, lbd, getattr(opt, lbd))
+
+            if self.lambda_patch > 0:
+                self.criterion_patch = ColorLoss(opt)
 
             # initialize optimizers
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
@@ -199,17 +203,7 @@ class TransferCycleModel(BaseModel):
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
         lambda_adv = self.lambda_adversarial
-
-        # Identity loss
-        self.loss_idt = 0.
-        if lambda_idt > 0:
-            # G_A should be identity if real_B is fed: ||G_A(B) - B||
-            self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
-            # G_B should be identity if real_A is fed: ||G_B(A) - A||
-            self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
-            self.loss_idt /= 2.
+        lambda_patch = self.lambda_patch
 
         # Adversarial loss
         self.loss_adv = 0.
@@ -229,6 +223,23 @@ class TransferCycleModel(BaseModel):
 
         self.loss_adv = (loss_adv_1 + loss_adv_2) / 2. * lambda_adv
 
+        # Identity loss
+        self.loss_idt = 0.
+        if lambda_idt > 0:
+            # G_A should be identity if real_B is fed: ||G_A(B) - B||
+            self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
+            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
+            # G_B should be identity if real_A is fed: ||G_B(A) - A||
+            self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
+            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
+            self.loss_idt /= 2.
+
+        # Patch loss
+        self.loss_patch = 0.
+        if lambda_patch > 0:
+            self.loss_patch += self.criterion_patch(self.input_P1, self.input_BP1, self.fake_P2, self.input_BP2)
+            self.loss_patch += self.criterion_patch(self.input_P2, self.input_BP2, self.fake_P1, self.input_BP1)
+
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
         self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
@@ -237,7 +248,7 @@ class TransferCycleModel(BaseModel):
         self.loss_cycle /= 2.
 
         # combined loss and calculate gradients
-        self.loss_G = (self.loss_adv + self.loss_cycle + self.loss_idt)
+        self.loss_G = (self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_patch)
         if backward:
             self.loss_G.backward()
 
@@ -285,6 +296,8 @@ class TransferCycleModel(BaseModel):
         ret_errors['adv'] = self.loss_adv.item()
         ret_errors['cycle'] = self.loss_cycle.item()
         ret_errors['idt'] = self.loss_idt.item()
+        if self.loss_patch > 0:
+            ret_errors['patch'] = self.loss_patch.item()
         return ret_errors
 
     def get_current_p2(self):

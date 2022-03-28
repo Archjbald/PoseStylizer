@@ -72,9 +72,12 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_adversarial', type=float, default=1.,
                                  help='the "adversarial loss"')
         self.parser.add_argument('--lambda_HPE', type=float, default=0.,
+                                 help='the generated keypoint loss'),
+        self.parser.add_argument('--lambda_patch', type=float, default=0.,
                                  help='the generated keypoint loss')
         self.parser.add_argument('--use_mask', action='store_true',
                                  help='mask background')
+
 
         self.isTrain = True
 
