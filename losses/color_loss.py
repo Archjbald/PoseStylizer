@@ -23,9 +23,14 @@ class ColorLoss(nn.Module):
         """
         Generate list of patch ids according to skeleton.
         Skeleton ids are shared across scales, random are not
-        :param img: image (Bx3xHxW)
-        :param bp: skeleton (BxCxHxW)
         :return: list of ids per scales, num_patches
+
+        Parameters
+        ----------
+        img_1 image_1 (Bx3xHxW)
+        bp_1 skeleton_1 (BxCxHxW)
+        img_2 image_1 (Bx3xHxW)
+        bp_2 skeleton_2 (BxCxHxW)
         """
         device = bp_1.device
 
