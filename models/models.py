@@ -14,9 +14,9 @@ def create_model(opt):
         elif opt.backward == 'cycle_hpe':
             from .PoseCycleHPENet import TransferCycleHPEModel
             model = TransferCycleHPEModel()
-        elif opt.backward == 'cycle_hpe_D':
-            from .PoseCycleHPENetD import TransferCycleHPEModelD
-            model = TransferCycleHPEModelD()
+        elif opt.backward == 'cycle_wgan':
+            from .PoseCycleWGANet import TransferCycleWGANModel
+            model = TransferCycleWGANModel()
         elif opt.backward == 'better_cycle':
             from .PoseBetterCycleNet import TransferBetterCycleModel
             model = TransferBetterCycleModel()

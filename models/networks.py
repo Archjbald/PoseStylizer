@@ -151,7 +151,7 @@ def define_F(netF, init_type='normal', init_gain=0.02, gpu_ids=[], opt=None):
 
 def define_D(input_nc, ndf, which_model_netD,
              n_layers_D=3, norm='batch', use_sigmoid=False, init_type='normal', gpu_ids=[], use_dropout=False,
-             n_downsampling=2):
+             n_downsampling=2, linear_size=None):
     netD = None
     use_gpu = len(gpu_ids) > 0
     norm_layer = get_norm_layer(norm_type=norm)
@@ -162,7 +162,7 @@ def define_D(input_nc, ndf, which_model_netD,
     if which_model_netD == 'resnet':
         netD = ResnetDiscriminator(input_nc, ndf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=n_layers_D,
                                    gpu_ids=[], padding_type='reflect', use_sigmoid=use_sigmoid,
-                                   n_downsampling=n_downsampling)
+                                   n_downsampling=n_downsampling, linear_size=linear_size)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
@@ -275,7 +275,7 @@ class ResnetBlock(nn.Module):
 
 class ResnetDiscriminator(nn.Module):
     def __init__(self, input_nc, ngf=64, norm_layer=nn.BatchNorm2d, use_dropout=False, n_blocks=6, gpu_ids=[],
-                 padding_type='reflect', use_sigmoid=False, n_downsampling=2):
+                 padding_type='reflect', use_sigmoid=False, n_downsampling=2, linear_size=None):
         assert (n_blocks >= 0)
         super(ResnetDiscriminator, self).__init__()
         self.input_nc = input_nc
@@ -326,6 +326,10 @@ class ResnetDiscriminator(nn.Module):
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout,
                                   use_bias=use_bias)]
 
+        if linear_size:
+            self.use_linear = True
+            self.linear = nn.Linear(linear_size[0] * linear_size[1] * ngf // mult, 1)
+
         self.model = nn.Sequential(*model)
 
     def forward(self, input, mask=None, use_sigmoid=None):
@@ -337,6 +341,9 @@ class ResnetDiscriminator(nn.Module):
         if mask is not None:
             mask = F.interpolate(mask, size=(y.shape[2], y.shape[3]), align_corners=False)
             y = y * mask
+        if self.use_linear:
+            y = y.view(-1, self.linear.in_features)
+            y = self.linear(y)
         return y
 
 

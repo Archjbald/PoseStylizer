@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import torch
 
 from .PoseCycleNet import TransferCycleModel
@@ -70,10 +68,6 @@ class TransferCycleHPEModel(TransferCycleModel):
             loss_adv_2 += self.criterion_GAN(self.netD_PP(torch.cat((self.fake_P1, self.input_P2), 1)), True)
 
         self.loss_adv = (loss_adv_1 + loss_adv_2) / 2. * lambda_adv
-
-        # Fake_qualities
-        quality_1 = 1. - loss_adv_1.item()
-        quality_2 = 1. - loss_adv_2.item()
 
         # Identity loss
         self.loss_idt = 0.
