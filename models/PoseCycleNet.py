@@ -130,17 +130,17 @@ class TransferCycleModel(BaseModel):
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :18]
         self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
 
-        if self.use_mask:
-            self.mask_1 = self.get_mask(self.input_BP1)
-            self.input_P1 *= self.mask_1
-            self.mask_2 = self.get_mask(self.input_BP2)
-            self.input_P2 *= self.mask_2
-
         if len(self.gpu_ids) > 0:
             self.input_P1 = self.input_P1.cuda()
             self.input_BP1 = self.input_BP1.cuda()
             self.input_P2 = self.input_P2.cuda()
             self.input_BP2 = self.input_BP2.cuda()
+
+        if self.use_mask:
+            self.mask_1 = self.get_mask(self.input_BP1)
+            self.input_P1 *= self.mask_1
+            self.mask_2 = self.get_mask(self.input_BP2)
+            self.input_P2 *= self.mask_2
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
