@@ -325,10 +325,11 @@ class ResnetDiscriminator(nn.Module):
         for i in range(n_blocks):
             model += [ResnetBlock(ngf * mult, padding_type=padding_type, norm_layer=norm_layer, use_dropout=use_dropout,
                                   use_bias=use_bias)]
-
         if linear_size:
             self.use_linear = True
             self.linear = nn.Linear(linear_size[0] * linear_size[1] * ngf // mult, 1)
+        else:
+            self.use_linear = False
 
         self.model = nn.Sequential(*model)
 

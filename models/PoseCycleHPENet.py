@@ -24,20 +24,20 @@ class TransferCycleHPEModel(TransferCycleModel):
         self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
         self.fake_BP2 = self.netHPE(self.fake_P2)
         if self.use_mask:
-            self.fake_P2 *= util.mask_from_pose(self.fake_BP2)
+            self.fake_P2 *= self.mask_2
         self.rec_P1 = self.netG([self.fake_P2, self.fake_BP2 if self.opt.fake_bp_cycle else self.input_BP2,
                                  self.input_BP1])  # G_B(G_A(A))
         if self.use_mask:
-            self.rec_P1 *= util.mask_from_pose(self.input_BP1)
+            self.rec_P1 *= self.get_mask(self.input_BP1)
 
         self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
         self.fake_BP1 = self.netHPE(self.fake_P1)
         if self.use_mask:
-            self.fake_P1 *= util.mask_from_pose(self.fake_BP1)
+            self.fake_P1 *= self.mask_1
         self.rec_P2 = self.netG([self.fake_P1, self.fake_BP1 if self.opt.fake_bp_cycle else self.input_BP1,
                                  self.input_BP2])  # G_A(G_B(B))
         if self.use_mask:
-            self.rec_P2 *= util.mask_from_pose(self.input_BP2)
+            self.rec_P2 *= self.get_mask(self.input_BP2)
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0

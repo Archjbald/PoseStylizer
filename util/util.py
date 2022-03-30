@@ -9,7 +9,7 @@ import collections
 import subprocess as sp
 import gc
 
-from skimage.draw import disk, line_aa, polygon, polygon2mask
+from skimage.draw import disk, line_aa, polygon, polygon2mask, rectangle
 
 
 # Converts a Tensor into a Numpy array
@@ -220,10 +220,34 @@ def get_kps(bp, thresh=0.1, w=None):
     return kps, v
 
 
+def box_from_pose(pose):
+    B, C, H, W = pose.shape
+    kps, v = get_kps(pose, thresh=0.5)
+    masks = torch.zeros((B, H, W), dtype=torch.bool, device=pose.device)
+    for b, kp in enumerate(kps):
+        h_min, w_min = kp[v[b]].min(axis=0).values.tolist()
+        h_max, w_max = kp[v[b]].max(axis=0).values.tolist()
+
+        h_min = max(0, h_min - 0.1 * H)
+        w_min = max(0, w_min - 0.1 * W)
+        h_max = min(H - 1, h_max + 0.1 * H)
+        w_max = min(W - 1, w_max + 0.1 * W)
+
+        mask = polygon2mask((H, W), [
+            (h_min, w_min),
+            (h_min, w_max),
+            (h_max, w_max),
+            (h_max, w_min)
+        ])
+
+        masks[b] = torch.tensor(mask, device=pose.device)
+
+    return masks
+
+
 def mask_from_pose(pose):
-    thresh = 0.5
     masks = pose.sum(dim=1, keepdims=True) > 0.7
-    rad = (pose > thresh).sum(dim=-1).max().item()
+    rad = (pose > .5).sum(dim=-1).max().item()
 
     img_size = pose.shape[-2:]
     kps, v = get_kps(pose, thresh=0.5)
