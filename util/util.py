@@ -242,7 +242,7 @@ def box_from_pose(pose):
 
         masks[b] = torch.tensor(mask, device=pose.device)
 
-    return masks
+    return masks.unsqueeze(1)
 
 
 def mask_from_pose(pose):
