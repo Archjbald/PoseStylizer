@@ -31,7 +31,7 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
                                           opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids,
                                           not opt.no_dropout_D,
                                           n_downsampling=opt.D_n_downsampling,
-                                          linear_size=img_size)
+                                          linear_size=None)
 
             self.fake_pool = ImagePool(opt.pool_size)
 
@@ -114,5 +114,7 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
 
     def get_current_errors(self):
         ret_errors = TransferCycleHPEModel.get_current_errors(self)
+
+
 
         return ret_errors
