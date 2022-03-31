@@ -291,7 +291,7 @@ class ResnetDiscriminator(nn.Module):
                  nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0,
                            bias=use_bias),
                  norm_layer(ngf),
-                 nn.ReLU(True)]
+                 nn.LeakyReLU(0.2, True)]
 
         # n_downsampling = 2
         if n_downsampling <= 2:
@@ -300,23 +300,23 @@ class ResnetDiscriminator(nn.Module):
                 model += [nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3,
                                     stride=2, padding=1, bias=use_bias),
                           norm_layer(ngf * mult * 2),
-                          nn.ReLU(True)]
+                          nn.LeakyReLU(0.2, True)]
         elif n_downsampling == 3:
             mult = 2 ** 0
             model += [nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3,
                                 stride=2, padding=1, bias=use_bias),
                       norm_layer(ngf * mult * 2),
-                      nn.ReLU(True)]
+                      nn.LeakyReLU(0.2, True)]
             mult = 2 ** 1
             model += [nn.Conv2d(ngf * mult, ngf * mult * 2, kernel_size=3,
                                 stride=2, padding=1, bias=use_bias),
                       norm_layer(ngf * mult * 2),
-                      nn.ReLU(True)]
+                      nn.LeakyReLU(0.2, True)]
             mult = 2 ** 2
             model += [nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3,
                                 stride=2, padding=1, bias=use_bias),
                       norm_layer(ngf * mult),
-                      nn.ReLU(True)]
+                      nn.LeakyReLU(0.2, True)]
 
         if n_downsampling <= 2:
             mult = 2 ** n_downsampling
