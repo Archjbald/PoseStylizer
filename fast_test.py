@@ -23,12 +23,12 @@ def get_options(name):
             continue
         except:
             pass
-        if "," in v:
-            try:
-                options[k] = [int(i) for i in v.split(',')]
-                continue
-            except:
-                pass
+        # if "," in v:
+        #     try:
+        #         options[k] = [int(i) for i in v.split(',')]
+        #         continue
+        #     except:
+        #         pass
         if v == 'False':
             options[k] = False
             continue
