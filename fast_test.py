@@ -54,8 +54,13 @@ if __name__ == '__main__':
     assert len(sys.argv) >= 2, 'No name mentioned'
     options = get_options(sys.argv[1])
 
+    for k, v in [('ntest', float("inf")), ('results_dir', './results/'), ('aspect_ratio', 1.0), ('phase', 'test'),
+                 ('which_epoch', 'latest'), ('how_many', 100)]:
+        if k not in options:
+            options[k] = v
+
     object_options = ObjectOpt(options)
-    object_options.max_dataset_size = 100
+
     object_options.random = False
     object_options.shuffle = False
 
