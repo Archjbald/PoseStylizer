@@ -29,6 +29,8 @@ def get_options(name):
         #         continue
         #     except:
         #         pass
+        if v[0] == '[':
+            options[k] = ','.join(v[1:-1].split(', '))
         if v == 'False':
             options[k] = False
             continue
