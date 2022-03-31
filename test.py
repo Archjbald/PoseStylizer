@@ -10,6 +10,17 @@ import time
 
 def test(opt, model, dataset):
     visualizer = Visualizer(opt)
+
+    # log opts
+    print('-' * 17, ' Options ', '-' * 17)
+    opt_keys = list(opt.__dict__.keys())
+    opt_keys.sort()
+    opt_msg = ''
+    for k in opt_keys:
+        opt_msg += f'{k}: {opt.__dict__[k]}\n'
+    print(opt_msg)
+    print('-' * 43)
+
     # create website
     web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
 
