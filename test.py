@@ -70,7 +70,7 @@ def set_test_opt(opt, max_dataset_size=None):
 def main(opt=None):
     if opt is None:
         opt = TestOptions().parse()
-        opt = set_test_opt(opt)
+    opt = set_test_opt(opt)
 
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
