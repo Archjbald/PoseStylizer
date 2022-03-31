@@ -48,7 +48,7 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
             self.schedulers.append(networks.get_scheduler(self.optimizer_D, opt))
 
     # D: take(P, B) as input
-    def backward_D(self, backward=True):
+    def backward_D(self, backward=True, gp=True):
         loss_D = 0.
         pairs = [(self.input_P2, self.fake_P2), (self.input_P1, self.fake_P1)]
         for pair in pairs:
@@ -60,8 +60,19 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
             pred_fake = self.netD(fake.detach())
             loss_fake = pred_fake.mean()
 
+            # Gradient penalty
+            eps = Variable(torch.rand(1), requires_grad=True)
+            eps = eps.expand(real.size())
+            eps = eps.cuda()
+            x_tilde = eps * real + (1 - eps) * fake.detach()
+            x_tilde = x_tilde.cuda()
+            pred_tilde = self.netD(x_tilde)
+            gradients = grad(outputs=pred_tilde, inputs=x_tilde,
+                             grad_outputs=torch.ones(pred_tilde.size()).cuda(),
+                             create_graph=True, retain_graph=True, only_inputs=True)[0]
+
             # Combined loss
-            loss = (loss_real + loss_fake)
+            loss = loss_real + loss_fake + 10 * ((gradients.norm(2, dim=1) - 1) ** 2).mean()
             loss_D += loss
 
         self.loss_D = loss_D / len(pairs) * self.lambda_GAN
@@ -82,7 +93,7 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
         if backward:
             self.loss_G.backward()
 
-    def optimize_parameters(self, backward=True):
+    def optimize_parameters(self, backward=True, c=0.01):
         """Calculate losses, gradients, and update network weights; called in every training iteration"""
         # forward
         self.forward()  # compute fake images and reconstruction images.
@@ -98,6 +109,8 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
             self.optimizer_D.zero_grad()
             self.backward_D(backward=backward)
             self.optimizer_D.step()
+            for p in self.netD.parameters():
+                p.data.clamp_(-c, c)
 
     def get_current_errors(self):
         ret_errors = TransferCycleHPEModel.get_current_errors(self)
