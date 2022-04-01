@@ -163,6 +163,8 @@ def define_D(input_nc, ndf, which_model_netD,
         netD = ResnetDiscriminator(input_nc, ndf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=n_layers_D,
                                    gpu_ids=[], padding_type='reflect', use_sigmoid=use_sigmoid,
                                    n_downsampling=n_downsampling, linear_size=linear_size)
+    elif which_model_netD == 'nlayer':
+        netD = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer, use_sigmoid)
     else:
         raise NotImplementedError('Discriminator model name [%s] is not recognized' %
                                   which_model_netD)
@@ -282,6 +284,7 @@ class ResnetDiscriminator(nn.Module):
         self.ngf = ngf
         self.gpu_ids = gpu_ids
         self.use_sigmoid = use_sigmoid
+
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -357,6 +360,54 @@ class Normalize(nn.Module):
         norm = x.pow(self.power).sum(1, keepdim=True).pow(1. / self.power)
         out = x.div(norm + 1e-7)
         return out
+
+
+class NLayerDiscriminator(nn.Module):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, use_sigmoid=False):
+        super(NLayerDiscriminator, self).__init__()
+
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+
+        kw = (4, 4)
+        pad = (1, 1)
+        sequence = [
+            nn.Conv2d(input_nc, ndf, kernel_size=kw, stride=(2, 2), padding=pad),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        nf_mult = 1
+        nf_mult_prev = 1
+        for n in range(1, n_layers):
+            nf_mult_prev = nf_mult
+            nf_mult = min(2 ** n, 8)
+            sequence += [
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
+                          kernel_size=kw, stride=(2, 2), padding=pad, bias=use_bias),
+                norm_layer(ndf * nf_mult),
+                nn.LeakyReLU(0.2, True)
+            ]
+
+        nf_mult_prev = nf_mult
+        nf_mult = min(2 ** n_layers, 8)
+        sequence += [
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult,
+                      kernel_size=kw, stride=(1, 1), padding=pad, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]
+
+        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=(1, 1), padding=pad)]
+
+        if use_sigmoid:
+            sequence += [nn.Sigmoid()]
+
+        self.model = nn.Sequential(*sequence)
+
+    def forward(self, x):
+        return self.model(x)
 
 
 class PatchSampleF(nn.Module):
