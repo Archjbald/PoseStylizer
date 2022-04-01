@@ -115,6 +115,6 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
     def get_current_errors(self):
         ret_errors = TransferCycleHPEModel.get_current_errors(self)
 
-
+        ret_errors['D'] = self.loss_D
 
         return ret_errors
