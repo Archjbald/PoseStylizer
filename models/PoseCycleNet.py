@@ -314,13 +314,14 @@ class TransferCycleModel(BaseModel):
         input_P2 = util.tensor2im(self.input_P2.data)
         fake_P2 = util.tensor2im(self.fake_P2.data)
         rec_P1 = util.tensor2im(self.rec_P1.data)
+        idt_P2 = util.tensor2im(self.idt_2.data)
 
         input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
         input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
 
         fake_BP2 = util.draw_pose_from_map(self.fake_BP2.data)[0]
 
-        imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_BP2, rec_P1]
+        imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_BP2, rec_P1, idt_P2]
         vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
         for i, img in enumerate(imgs):
             vis[:, width * i:width * (i + 1), :] = img
