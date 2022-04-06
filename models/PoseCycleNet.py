@@ -157,7 +157,7 @@ class TransferCycleModel(BaseModel):
         if self.use_mask:
             self.rec_P2 *= self.get_mask(self.input_BP2)
 
-        if self.lambda_identity or not self.isTrain:
+        if not self.isTrain or self.lambda_identity:
             self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
             self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
 
