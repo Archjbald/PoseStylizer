@@ -79,14 +79,37 @@ class ColorLoss(nn.Module):
         self.opt = opt
         self.loss = nn.MSELoss()
         self.nb_patch = 6
-        self.vgg = models.vgg19(pretrained=True).cuda()
+        vgg = models.vgg19(pretrained=True).features
+        i_layers = [8, 17, 26, 31]
+        self.vgg_layers = []
+        layers = nn.Sequential()
+        for i, layer in enumerate(list(vgg)):
+            layers.add_module(str(i), layer)
+            if i in i_layers:
+                self.vgg_layers.append(layers)
+                layers = nn.Sequential()
+                if i == i_layers[-1]:
+                    break
+        self.vgg_layers = [torch.nn.DataParallel(layer, device_ids=opt.gpu_ids).cuda() for layer in self.vgg_layers]
 
     def forward(self, img_in, bp_in, img_out, bp_out):
         patches_in, patches_out = self.get_patches(img_in, bp_in, img_out, bp_out)
-        feats_in = self.vgg(patches_in)
-        feats_out = self.vgg(patches_out)
-        loss = self.loss(feats_out.mT @ feats_out, feats_in.mT @ feats_in) * self.opt.lambda_patch
-        return loss / self.nb_patch
+
+        patches_in = (patches_in + 1) / 2  # [-1, 1] => [0, 1]
+
+        patches_out = (patches_out + 1) / 2  # [-1, 1] => [0, 1]
+
+        f_in = patches_in
+        f_out = patches_out
+        loss = 0
+        for layer in self.vgg_layers:
+            f_in = layer(f_in).flatten(-2)
+            f_in_det = f_in.detach()
+            f_out = layer(f_out).flatten(-2)
+
+            loss += self.loss(f_out.mT @ f_out, f_in_det.mT @ f_in_det) * self.opt.lambda_patch
+
+        return loss / self.nb_patch / len(self.vgg_layers)
 
     def get_patches(self, img_1, bp_1, img_2, bp_2, concat=True):
         height = img_1.shape[-2]
