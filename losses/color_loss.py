@@ -86,7 +86,7 @@ class ColorLoss(nn.Module):
         feats_in = self.vgg(patches_in)
         feats_out = self.vgg(patches_out)
         loss = self.loss(feats_out.mT @ feats_out, feats_in.mT @ feats_in) * self.opt.lambda_patch
-        return loss
+        return loss / self.nb_patch
 
     def get_patches(self, img_1, bp_1, img_2, bp_2, concat=True):
         height = img_1.shape[-2]
