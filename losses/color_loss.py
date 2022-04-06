@@ -103,11 +103,12 @@ class ColorLoss(nn.Module):
         f_out = patches_out
         loss = 0
         for layer in self.vgg_layers:
-            f_in = layer(f_in).flatten(-2)
-            f_in_det = f_in.detach()
-            f_out = layer(f_out).flatten(-2)
+            f_in = layer(f_in)
+            f_out = layer(f_out)
 
-            loss += self.loss(f_out.mT @ f_out, f_in_det.mT @ f_in_det) * self.opt.lambda_patch
+            f_in_flat = f_in.detach().flatten(-2)
+            f_out_flat = f_out.flatten(-2)
+            loss += self.loss(f_out_flat @ f_out_flat.mT, f_in_flat @ f_in_flat.mT) * self.opt.lambda_patch
 
         return loss / self.nb_patch / len(self.vgg_layers)
 
