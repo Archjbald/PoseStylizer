@@ -64,11 +64,11 @@ class KeyDataset(BaseDataset):
         # P2_img = Image.new('RGB', P2_img.size)
         # BP2_img = np.empty_like(BP2_img)
         # use flip
-        if self.opt.phase == 'train' and not self.opt.no_flip:
+        if self.opt.phase == 'train':
             # print ('use_flip ...')
             flip_random = random.uniform(0, 1)
             rs_random = random.uniform(0, 1)
-            if rs_random > 0.6:
+            if rs_random > 0.6 and not self.opt.no_rotate:
                 rs_transform = get_random_trans(P1_img.size[:2])
 
                 P1_img = rs_transform(P1_img)
@@ -77,7 +77,7 @@ class KeyDataset(BaseDataset):
                 BP1_img = rs_transform(BP1_img)
                 BP2_img = rs_transform(BP2_img)
 
-            if flip_random > 0.5:
+            if flip_random > 0.5 and not self.opt.no_flip:
                 # print('fliped ...')
                 P1_img = P1_img.transpose(Image.FLIP_LEFT_RIGHT)
                 P2_img = P2_img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -85,28 +85,16 @@ class KeyDataset(BaseDataset):
                 BP1_img = flip_keypoints(BP1_img)  # flip
                 BP2_img = flip_keypoints(BP2_img)  # flip
 
-            BP1 = torch.from_numpy(BP1_img).float()  # h, w, c
-            BP1 = BP1.transpose(2, 0)  # c,w,h
-            BP1 = BP1.transpose(2, 1)  # c,h,w
+        BP1 = torch.from_numpy(BP1_img).float()  # h, w, c
+        BP1 = BP1.transpose(2, 0)  # c,w,h
+        BP1 = BP1.transpose(2, 1)  # c,h,w
 
-            BP2 = torch.from_numpy(BP2_img).float()
-            BP2 = BP2.transpose(2, 0)  # c,w,h
-            BP2 = BP2.transpose(2, 1)  # c,h,w
+        BP2 = torch.from_numpy(BP2_img).float()
+        BP2 = BP2.transpose(2, 0)  # c,w,h
+        BP2 = BP2.transpose(2, 1)  # c,h,w
 
-            P1 = self.transform(P1_img)
-            P2 = self.transform(P2_img)
-
-        else:
-            BP1 = torch.from_numpy(BP1_img).float()  # h, w, c
-            BP1 = BP1.transpose(2, 0)  # c,w,h
-            BP1 = BP1.transpose(2, 1)  # c,h,w
-
-            BP2 = torch.from_numpy(BP2_img).float()
-            BP2 = BP2.transpose(2, 0)  # c,w,h
-            BP2 = BP2.transpose(2, 1)  # c,h,w
-
-            P1 = self.transform(P1_img)
-            P2 = self.transform(P2_img)
+        P1 = self.transform(P1_img)
+        P2 = self.transform(P2_img)
 
         return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2,
                 'P1_path': P1_name, 'P2_path': P2_name}
