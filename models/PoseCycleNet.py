@@ -158,8 +158,8 @@ class TransferCycleModel(BaseModel):
             self.rec_P2 *= self.get_mask(self.input_BP2)
 
         if self.lambda_identity:
-            self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
+            self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
+            self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
 
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
@@ -235,9 +235,9 @@ class TransferCycleModel(BaseModel):
         self.loss_idt = 0.
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
-            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P1, self.input_P1) * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
-            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P2, self.input_P2) * lambda_idt
             self.loss_idt /= 2.
 
         # Patch loss
@@ -316,6 +316,7 @@ class TransferCycleModel(BaseModel):
         input_P2 = util.tensor2im(self.input_P2.data)
         fake_P2 = util.tensor2im(self.fake_P2.data)
         rec_P1 = util.tensor2im(self.rec_P1.data)
+        idt_P2 = util.tensor2im(self.idt_P2.data)
 
         input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
         input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
@@ -345,7 +346,7 @@ class TransferCycleModel(BaseModel):
         del self.fake_P1, self.fake_P2, self.rec_P1, self.rec_P2
 
         # loss G
-        del self.idt_1, self.loss_idt_1, self.idt_2, self.loss_idt_2
+        del self.idt_P1, self.loss_idt_1, self.idt_P2, self.loss_idt_2
         del self.loss_G_GAN_PB_1, self.loss_G_GAN_PP_1, self.loss_G_1
         del self.loss_G_GAN_PB_2, self.loss_G_GAN_PP_2, self.loss_G_2
         del self.loss_cycle_1, self.loss_cycle_2, self.loss_G
