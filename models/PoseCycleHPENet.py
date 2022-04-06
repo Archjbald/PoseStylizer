@@ -39,6 +39,10 @@ class TransferCycleHPEModel(TransferCycleModel):
         if self.use_mask:
             self.rec_P2 *= self.get_mask(self.input_BP2)
 
+        if self.lambda_identity:
+            self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
+            self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
+
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
         loss = self.criterion_HPE(fake * annotated[:, :, None, None], real) * self.lambda_HPE
@@ -73,11 +77,9 @@ class TransferCycleHPEModel(TransferCycleModel):
         self.loss_idt = 0.
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
-            self.idt_1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
-            self.loss_idt += self.criterion_idt(self.idt_1, self.input_P1) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P1, self.input_P1) * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
-            self.idt_2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
-            self.loss_idt += self.criterion_idt(self.idt_2, self.input_P2) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P2, self.input_P2) * lambda_idt
             self.loss_idt /= 2.
 
         # HPE Loss
