@@ -76,8 +76,6 @@ def init_weights(net, init_type='normal'):
 def get_norm_layer(norm_type='instance'):
     if norm_type == 'batch':
         norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
-    elif norm_type == 'batch_sync':
-        norm_layer = BatchNorm2d
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
     elif norm_type == 'none':
@@ -114,12 +112,16 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
 
     if which_model_netG in ['APS']:
         from models.APS import stylegenerator
+        netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
+                              use_transfer_layer=use_transfer_layer, n_blocks=9, gpu_ids=gpu_ids,
+                              n_downsampling=n_downsampling, opt=opt)
+    elif which_model_netG in ['PATN']:
+        from models.PATN import stylegenerator
+        input_nc = [opt.P_input_nc, opt.BP_input_nc + opt.BP_input_nc]
+        netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6,
+                              gpu_ids=gpu_ids, n_downsampling=n_downsampling)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
-
-    netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout,
-                          use_transfer_layer=use_transfer_layer, n_blocks=9, gpu_ids=gpu_ids,
-                          n_downsampling=n_downsampling, opt=opt)
 
     """
     if len(gpu_ids) > 1:
