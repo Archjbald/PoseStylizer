@@ -78,7 +78,7 @@ class ColorLoss(nn.Module):
         super().__init__()
         self.opt = opt
         self.loss = nn.MSELoss()
-        self.nb_patch = 6
+        self.nb_patch = self.opt.nb_patch
         vgg = models.vgg19(pretrained=True).features
         i_layers = [8, 17, 26, 31]
         self.vgg_layers = []
