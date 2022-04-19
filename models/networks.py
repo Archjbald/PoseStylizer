@@ -9,6 +9,7 @@ import torchvision.transforms.functional as fn
 
 from util.util import get_kps
 
+
 import sys
 
 
@@ -78,6 +79,9 @@ def get_norm_layer(norm_type='instance'):
         norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False)
+    elif norm_type == 'switchable':
+        from .model_utils import SwitchNorm2d
+        norm_layer = SwitchNorm2d
     elif norm_type == 'none':
         norm_layer = None
     else:

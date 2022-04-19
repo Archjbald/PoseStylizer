@@ -23,6 +23,7 @@ class PATNCycle(TransferCycleModel):
         opt.lambda_patch = 0
 
         opt.which_model_netG = "PATN"
+        opt.norm = 'switchable'
 
         TransferCycleModel.initialize(self, opt)
 
