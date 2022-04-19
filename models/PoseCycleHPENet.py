@@ -7,7 +7,7 @@ import util.util as util
 
 class TransferCycleHPEModel(TransferCycleModel):
     def name(self):
-        return 'TransferCycleHPEModel'
+        return 'PATNCycle'
 
     def initialize(self, opt):
         TransferCycleModel.initialize(self, opt)

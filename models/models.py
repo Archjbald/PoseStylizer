@@ -3,8 +3,8 @@ def create_model(opt):
     model = None
     print(opt.model)
 
+    assert opt.dataset_mode in ['keypoint', 'keypoint_segmentation']
     if opt.model == 'PoseStyleNet':
-        assert opt.dataset_mode in ['keypoint', 'keypoint_segmentation']
         if opt.backward == 'cut':
             from .PoseCutNet import TransferCUTModel
             model = TransferCUTModel()
@@ -23,6 +23,9 @@ def create_model(opt):
         else:
             from .PoseStyleNet import TransferModel
             model = TransferModel()
+    elif opt.model == 'PATNCycle':
+        from .PATNCycle import PATNCycle
+        model = PATNCycle()
     else:
         raise ValueError("Model [%s] not recognized." % opt.model)
 

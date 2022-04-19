@@ -302,8 +302,6 @@ class TransferCycleModel(BaseModel):
         ret_errors['adv'] = self.loss_adv.item()
         ret_errors['cycle'] = self.loss_cycle.item()
         ret_errors['idt'] = self.loss_idt.item()
-        if self.loss_patch > 0:
-            ret_errors['patch'] = self.loss_patch.item()
         return ret_errors
 
     def get_current_p2(self):
