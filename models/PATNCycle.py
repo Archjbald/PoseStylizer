@@ -70,7 +70,6 @@ class PATNCycle(TransferCycleModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        print('Hello')
         self.fake_BP1 = self.netHPE(self.fake_P1)
         self.fake_BP2 = self.netHPE(self.fake_P2)
         if self.lambda_HPE:
@@ -100,7 +99,7 @@ class PATNCycle(TransferCycleModel):
         return ret_errors
 
     def get_current_visuals(self):
-        print('')
+        print('Bye')
         if not self.gen_final_hpe:
             netHPE = self.netHPE
             if isinstance(netHPE, torch.nn.DataParallel):
@@ -108,4 +107,4 @@ class PATNCycle(TransferCycleModel):
             with torch.no_grad():
                 self.fake_BP1 = netHPE.generate_final_bps(self.fake_BP1, self.input_P2)
                 self.fake_BP2 = netHPE.generate_final_bps(self.fake_BP2, self.input_P1)
-        return TransferCycleModel.get_current_visuals()
+        return TransferCycleModel.get_current_visuals(self)
