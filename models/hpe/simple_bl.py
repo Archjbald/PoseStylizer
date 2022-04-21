@@ -102,10 +102,10 @@ resnet_spec = {18: (BasicBlock, [2, 2, 2, 2]),
                152: (Bottleneck, [3, 8, 36, 3])}
 
 
-def get_pose_net():
+def get_pose_net(gen_final=True):
     num_layers = 50
     block_class, layers = resnet_spec[num_layers]
-    model = PoseResNet(block_class, layers)
+    model = PoseResNet(block_class, layers, gen_final=gen_final)
 
     model.init_weights('assets/coco_vis2_0_novis.pth.tar')
     for p in model.parameters():
