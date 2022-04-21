@@ -96,3 +96,9 @@ class PATNCycle(TransferCycleModel):
             ret_errors['HPE'] = self.loss_HPE.item()
 
         return ret_errors
+
+    def get_current_visuals(self):
+        with torch.no_grad():
+            self.fake_BP1 = self.netHPE(self.fake_P1, final=True)
+            self.fake_BP2 = self.netHPE(self.fake_P2, final=True)
+        return TransferCycleModel.get_current_visuals()
