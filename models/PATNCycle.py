@@ -28,10 +28,11 @@ class PATNCycle(TransferCycleModel):
         TransferCycleModel.initialize(self, opt)
 
         self.model_names.append('netHPE')
-        self.netHPE = get_pose_net(gen_final=False)
+        self.gen_final_hpe = False
+        self.netHPE = get_pose_net(gen_final=self.gen_final_hpe)
 
         self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids, percep_is_l1=True,
-                                              submodel=self.netHPE)
+                                                      submodel=self.netHPE)
         self.criterion_idt = self.criterion_cycle
 
         if self.isTrain:
@@ -100,10 +101,8 @@ class PATNCycle(TransferCycleModel):
 
     def get_current_visuals(self):
         print('')
-        if not self.netHPE.gen_final_train:
-            self.netHPE.gen_final = True
+        if not self.gen_final_hpe:
             with torch.no_grad():
-                self.fake_BP1 = self.netHPE(self.fake_P1, final=True)
-                self.fake_BP2 = self.netHPE(self.fake_P2, final=True)
-            self.netHPE.gen_final = False
+                self.fake_BP1 = self.netHPE.generate_final_bps(self.fake_BP1, self.input_P2)
+                self.fake_BP2 = self.netHPE.generate_final_bps(self.fake_BP2, self.input_P1)
         return TransferCycleModel.get_current_visuals()
