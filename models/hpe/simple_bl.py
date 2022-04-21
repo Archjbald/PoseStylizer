@@ -89,7 +89,6 @@ class PoseResNet(PoseNet):
             for k, point in enumerate(kp):
                 if not v[b][k]:
                     pass
-                print(point.device, xx.device, result.device)
                 result[b, k] = torch.exp(-((yy - point[0]) ** 2 + (xx - point[1]) ** 2) / (2 * sigma ** 2))
 
         return result
