@@ -63,9 +63,9 @@ class PATNCycle(TransferCycleModel):
         self.loss_idt = 0.
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
-            self.loss_idt += self.criterion_idt(self.idt_P1, self.input_P1) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P1, self.input_P1)[0] * lambda_idt
             # G_B should be identity if real_A is fed: ||G_B(A) - A||
-            self.loss_idt += self.criterion_idt(self.idt_P2, self.input_P2) * lambda_idt
+            self.loss_idt += self.criterion_idt(self.idt_P2, self.input_P2)[0] * lambda_idt
 
         # HPE Loss
         self.loss_HPE = 0.
@@ -81,9 +81,9 @@ class PATNCycle(TransferCycleModel):
 
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
-        self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P1, self.input_P1)[0] * lambda_cycle
         # Backward cycle loss || G_A(G_B(B)) - B||
-        self.loss_cycle += self.criterion_cycle(self.rec_P2, self.input_P2) * lambda_cycle
+        self.loss_cycle += self.criterion_cycle(self.rec_P2, self.input_P2)[0] * lambda_cycle
 
         # combined loss and calculate gradients
         self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE
