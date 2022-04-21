@@ -99,12 +99,11 @@ class PATNCycle(TransferCycleModel):
         return ret_errors
 
     def get_current_visuals(self):
-        print('Bye')
         if not self.gen_final_hpe:
             netHPE = self.netHPE
             if isinstance(netHPE, torch.nn.DataParallel):
                 netHPE = netHPE.module
             with torch.no_grad():
-                self.fake_BP1 = netHPE.generate_final_bps(self.fake_BP1, self.input_P2)
-                self.fake_BP2 = netHPE.generate_final_bps(self.fake_BP2, self.input_P1)
+                self.fake_BP1 = netHPE.generate_final_bps(self.fake_BP1[:1], self.input_P2[:1])
+                self.fake_BP2 = netHPE.generate_final_bps(self.fake_BP2[:1], self.input_P1[:1])
         return TransferCycleModel.get_current_visuals(self)
