@@ -30,12 +30,13 @@ class PoseResNet(PoseNet):
 
         self.mesh_grid = None
 
-    def forward(self, x):
+    def forward(self, x, final=True):
         # x = torch.cat([x, x], dim=0)
         feat = self.resnet(x)
         out = self.final_stage(feat)
 
-        out = self.generate_final_bps(out, x)
+        if final:
+            out = self.generate_final_bps(out, x)
 
         return out
 

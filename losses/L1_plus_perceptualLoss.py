@@ -8,7 +8,7 @@ import torchvision.models as models
 
 
 class PerceptualLoss(nn.Module):
-    def __init__(self, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1=False):
+    def __init__(self, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1=False, submodel=None):
         super(PerceptualLoss, self).__init__()
 
         self.lambda_perceptual = lambda_perceptual
@@ -16,13 +16,15 @@ class PerceptualLoss(nn.Module):
 
         self.percep_is_l1 = percep_is_l1
 
-        vgg = models.vgg19(pretrained=True).features
-        self.vgg_submodel = nn.Sequential()
-        for i, layer in enumerate(list(vgg)):
-            self.vgg_submodel.add_module(str(i), layer)
-            if i == perceptual_layers:
-                break
-        self.vgg_submodel = torch.nn.DataParallel(self.vgg_submodel, device_ids=gpu_ids).cuda()
+        self.submodel = submodel
+        if submodel is None:
+            vgg = models.vgg19(pretrained=True).features
+            self.submodel = nn.Sequential()
+            for i, layer in enumerate(list(vgg)):
+                self.submodel.add_module(str(i), layer)
+                if i == perceptual_layers:
+                    break
+            self.submodel = torch.nn.DataParallel(self.submodel, device_ids=gpu_ids).cuda()
 
     def forward(self, inputs, targets):
         if self.lambda_perceptual == 0:
@@ -47,8 +49,8 @@ class PerceptualLoss(nn.Module):
         input_p2_norm = (targets + 1) / 2  # [-1, 1] => [0, 1]
         input_p2_norm = (input_p2_norm - mean) / std
 
-        fake_p2_norm = self.vgg_submodel(fake_p2_norm)
-        input_p2_norm = self.vgg_submodel(input_p2_norm)
+        fake_p2_norm = self.submodel(fake_p2_norm)
+        input_p2_norm = self.submodel(input_p2_norm)
         input_p2_norm_no_grad = input_p2_norm.detach()
 
         if self.percep_is_l1 == 1:
@@ -62,11 +64,12 @@ class PerceptualLoss(nn.Module):
 
 
 class L1_plus_perceptualLoss(nn.Module):
-    def __init__(self, lambda_L1, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1):
+    def __init__(self, lambda_L1, lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1, submodel=None):
         super(L1_plus_perceptualLoss, self).__init__()
 
         self.lambda_L1 = lambda_L1
-        self.perceptual_loss = PerceptualLoss(lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1)
+        self.perceptual_loss = PerceptualLoss(lambda_perceptual, perceptual_layers, gpu_ids, percep_is_l1,
+                                              submodel=submodel)
 
     def forward(self, inputs, targets):
         if self.lambda_L1 == 0 and self.lambda_perceptual == 0:

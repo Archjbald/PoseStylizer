@@ -2,7 +2,7 @@ import torch
 
 from .PoseCycleNet import TransferCycleModel
 from .hpe.simple_bl import get_pose_net
-from losses.L1_plus_perceptualLoss import PerceptualLoss
+from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss
 
 
 class PATNCycle(TransferCycleModel):
@@ -27,11 +27,12 @@ class PATNCycle(TransferCycleModel):
 
         TransferCycleModel.initialize(self, opt)
 
-        self.criterion_cycle = PerceptualLoss(0.5, opt.perceptual_layers, self.gpu_ids)
-        self.criterion_idt = PerceptualLoss(0.5, opt.perceptual_layers, self.gpu_ids)
-
         self.model_names.append('netHPE')
         self.netHPE = get_pose_net()
+
+        self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids, percep_is_l1=True,
+                                              submodel=self.netHPE)
+        self.criterion_idt = self.criterion_cycle
 
         if self.isTrain:
             self.lambda_HPE = opt.lambda_HPE
@@ -68,11 +69,15 @@ class PATNCycle(TransferCycleModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        self.fake_BP1 = self.netHPE(self.fake_P1)
-        self.fake_BP2 = self.netHPE(self.fake_P2)
+        self.fake_BP1 = self.netHPE(self.fake_P1, final=False)
+        self.fake_BP2 = self.netHPE(self.fake_P2, final=False)
         if self.lambda_HPE:
-            self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.input_BP1)
-            self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.input_BP2)
+            self.real_BP1 = self.netHPE(self.input_P1, final=False)
+            self.real_BP2 = self.netHPE(self.intput_P2, final=False)
+            # self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.real_BP1)
+            # self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.real_BP2)
+            self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.real_BP1) * self.lambda_HPE
+            self.loss_HPE += self.criterion_HPE(self.fake_BP2, self.real_BP2) * self.lambda_HPE
 
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||
