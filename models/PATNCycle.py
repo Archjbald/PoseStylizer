@@ -69,11 +69,12 @@ class PATNCycle(TransferCycleModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        self.fake_BP1 = self.netHPE(self.fake_P1, final=False)
-        self.fake_BP2 = self.netHPE(self.fake_P2, final=False)
+        print('Hello')
+        self.fake_BP1 = self.netHPE(self.fake_P1)
+        self.fake_BP2 = self.netHPE(self.fake_P2)
         if self.lambda_HPE:
-            self.real_BP1 = self.netHPE(self.input_P1, final=False)
-            self.real_BP2 = self.netHPE(self.input_P2, final=False)
+            self.real_BP1 = self.netHPE(self.input_P1)
+            self.real_BP2 = self.netHPE(self.input_P2)
             # self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.real_BP1)
             # self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.real_BP2)
             self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.real_BP1) * self.lambda_HPE
@@ -98,7 +99,11 @@ class PATNCycle(TransferCycleModel):
         return ret_errors
 
     def get_current_visuals(self):
-        with torch.no_grad():
-            self.fake_BP1 = self.netHPE(self.fake_P1, final=True)
-            self.fake_BP2 = self.netHPE(self.fake_P2, final=True)
+        print('')
+        if not self.netHPE.gen_final_train:
+            self.netHPE.gen_final = True
+            with torch.no_grad():
+                self.fake_BP1 = self.netHPE(self.fake_P1, final=True)
+                self.fake_BP2 = self.netHPE(self.fake_P2, final=True)
+            self.netHPE.gen_final = False
         return TransferCycleModel.get_current_visuals()

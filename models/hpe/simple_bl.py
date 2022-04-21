@@ -22,20 +22,24 @@ logger = logging.getLogger(__name__)
 
 
 class PoseResNet(PoseNet):
-    def __init__(self, block, layers):
+    def __init__(self, block, layers, gen_final=True):
         super(PoseResNet, self).__init__()
 
         self.resnet = ResNet(block, layers)
         self.final_stage = DeconvStage(self.resnet.inplanes)
-
+        self.gen_final_train = gen_final
+        self.gen_final = gen_final
         self.mesh_grid = None
 
-    def forward(self, x, final=True):
+    def switch_gen(self):
+        self.gen_final = self.gen_final_train or not self.gen_final
+
+    def forward(self, x):
         # x = torch.cat([x, x], dim=0)
         feat = self.resnet(x)
         out = self.final_stage(feat)
 
-        if final:
+        if self.gen_final:
             out = self.generate_final_bps(out, x)
 
         return out
@@ -85,6 +89,7 @@ class PoseResNet(PoseNet):
             for k, point in enumerate(kp):
                 if not v[b][k]:
                     pass
+                print(point.device, xx.device, result.device)
                 result[b, k] = torch.exp(-((yy - point[0]) ** 2 + (xx - point[1]) ** 2) / (2 * sigma ** 2))
 
         return result
