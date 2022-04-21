@@ -28,7 +28,7 @@ class PATNCycle(TransferCycleModel):
         TransferCycleModel.initialize(self, opt)
 
         self.model_names.append('netHPE')
-        self.netHPE = get_pose_net()
+        self.netHPE = get_pose_net(gen_final=False)
 
         self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids, percep_is_l1=True,
                                               submodel=self.netHPE)
