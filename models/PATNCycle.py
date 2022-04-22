@@ -31,11 +31,11 @@ class PATNCycle(TransferCycleModel):
         self.gen_final_hpe = False
         self.netHPE = get_pose_net(gen_final=self.gen_final_hpe)
 
-        self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids, percep_is_l1=True,
-                                                      submodel=self.netHPE)
-        self.criterion_idt = self.criterion_cycle
-
         if self.isTrain:
+            self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids,
+                                                          percep_is_l1=True,
+                                                          submodel=self.netHPE)
+            self.criterion_idt = self.criterion_cycle
             self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()
 
@@ -90,6 +90,35 @@ class PATNCycle(TransferCycleModel):
         self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE
         if backward:
             self.loss_G.backward()
+
+    def optimize_parameters(self, backward=True):
+        """Calculate losses, gradients, and update network weights; called in every training iteration"""
+        # forward
+        self.forward()  # compute fake images and reconstruction images.
+        self.optimizer_G.zero_grad()  # set G_A and G_B's gradients to zero
+        self.backward_G(backward=backward)  # calculate gradients for G_A and G_B
+        self.optimizer_G.step()  # update G_A and G_B's weights
+
+        # D
+        if self.opt.with_D_simple:
+            for i in range(self.opt.DG_ratio):
+                self.optimizer_D.zero_grad()
+                self.backward_D(backward=backward)
+                self.optimizer_D.step()
+
+        # D_P
+        if self.opt.with_D_PP:
+            for i in range(self.opt.DG_ratio):
+                self.optimizer_D_PP.zero_grad()
+                self.backward_D_PP(backward=backward)
+                self.optimizer_D_PP.step()
+
+        # D_BP
+        if self.opt.with_D_PB:
+            for i in range(self.opt.DG_ratio):
+                self.optimizer_D_PB.zero_grad()
+                self.backward_D_PB(backward=backward)
+                self.optimizer_D_PB.step()
 
     def get_current_errors(self):
         ret_errors = TransferCycleModel.get_current_errors(self)

@@ -122,7 +122,7 @@ def define_G(input_nc, output_nc, ngf, which_model_netG, norm='batch', use_dropo
     elif which_model_netG in ['PATN']:
         from models.PATN import stylegenerator
         input_nc = [opt.P_input_nc, opt.BP_input_nc + opt.BP_input_nc]
-        netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=6,
+        netG = stylegenerator(input_nc, output_nc, ngf, norm_layer=norm_layer, use_dropout=use_dropout, n_blocks=9,
                               gpu_ids=gpu_ids, n_downsampling=n_downsampling)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)

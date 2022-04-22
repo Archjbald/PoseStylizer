@@ -72,7 +72,7 @@ class L1_plus_perceptualLoss(nn.Module):
                                               submodel=submodel)
 
     def forward(self, inputs, targets):
-        if self.lambda_L1 == 0 and self.lambda_perceptual == 0:
+        if self.lambda_L1 == 0 and self.perceptual_loss.lambda_perceptual == 0:
             return torch.zeros(1).cuda(), torch.zeros(1), torch.zeros(1)
         # normal L1
         loss_l1 = F.l1_loss(inputs, targets) * self.lambda_L1
