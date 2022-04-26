@@ -34,7 +34,7 @@ class PATNCycle(TransferCycleModel):
         if self.isTrain:
             self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids,
                                                           percep_is_l1=True,
-                                                          submodel=self.netHPE)
+                                                          submodel=self.netHPE.get_feat_extractor())
             self.criterion_idt = self.criterion_cycle
             self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()

@@ -24,6 +24,7 @@ class PerceptualLoss(nn.Module):
                 self.submodel.add_module(str(i), layer)
                 if i == perceptual_layers:
                     break
+        if not isinstance(self.submodel, torch.nn.DataParallel):
             self.submodel = torch.nn.DataParallel(self.submodel, device_ids=gpu_ids).cuda()
 
     def forward(self, inputs, targets):

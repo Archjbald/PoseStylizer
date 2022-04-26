@@ -31,6 +31,14 @@ class PoseResNet(PoseNet):
         self.gen_final = gen_final
         self.mesh_grid = None
 
+    def get_feat_extractor(self):
+        submodel = nn.Sequential()
+        for i, l in enumerate(list(self.resnet.children())):
+            submodel.append(l)
+            if i == 4:
+                break
+        return submodel
+
     def switch_gen(self):
         self.gen_final = self.gen_final_train or not self.gen_final
 

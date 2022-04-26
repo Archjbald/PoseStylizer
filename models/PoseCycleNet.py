@@ -163,7 +163,8 @@ class TransferCycleModel(BaseModel):
 
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
-        pred_real = netD(real)
+        noise_real = (0.1 ** 0.5) * torch.rand_like(real)
+        pred_real = netD(real + noise_real)
         loss_D_real = self.criterion_GAN(pred_real, True) * self.lambda_GAN
         # Fake
         pred_fake = netD(fake.detach())
