@@ -16,12 +16,6 @@ class PATNCycle(TransferCycleModel):
 
         opt.use_mask = False
 
-        opt.lambda_identity = 1
-        opt.lambda_cycle = 2
-        opt.lambda_adversarial = 5
-        opt.lambda_HPE = 700
-        opt.lambda_patch = 0
-
         opt.which_model_netG = "PATN"
         opt.norm = 'switchable'
 
