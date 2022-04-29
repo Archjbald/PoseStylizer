@@ -96,6 +96,12 @@ class KeyDataset(BaseDataset):
         P1 = self.transform(P1_img)
         P2 = self.transform(P2_img)
 
+        if not P1.shape[-2:] == BP1.shape[-2:]:
+            trans = transforms.Resize((P1.shape[-2], P1.shape[-1]))
+            with torch.no_grad():
+                BP1 = trans(BP1)
+                BP2 = trans(BP2)
+
         return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2,
                 'P1_path': P1_name, 'P2_path': P2_name}
 

@@ -2,7 +2,7 @@ import torch
 
 from .PoseCycleNet import TransferCycleModel
 from .hpe.simple_bl import get_pose_net
-from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss
+from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss, PerceptualLoss
 
 
 class PATNCycle(TransferCycleModel):
@@ -15,12 +15,6 @@ class PATNCycle(TransferCycleModel):
         opt.with_D_PB = True
 
         opt.use_mask = False
-
-        opt.lambda_identity = 1
-        opt.lambda_cycle = 2
-        opt.lambda_adversarial = 5
-        opt.lambda_HPE = 700
-        opt.lambda_patch = 0
 
         opt.which_model_netG = "PATN"
         opt.norm = 'switchable'
@@ -38,6 +32,10 @@ class PATNCycle(TransferCycleModel):
             self.criterion_idt = self.criterion_cycle
             self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()
+            self.lambda_L2 = opt.lambda_A
+            if self.lambda_L2:
+                self.criterion_L2 = PerceptualLoss(1, opt.perceptual_layers, self.gpu_ids)
+
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
@@ -86,8 +84,13 @@ class PATNCycle(TransferCycleModel):
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle += self.criterion_cycle(self.rec_P2, self.input_P2)[0] * lambda_cycle
 
+        self.loss_L2 = 0
+        if self.lambda_L2:
+            self.loss_L2 += self.criterion_L2(self.fake_P2, self.input_P2) * self.lambda_L2
+            self.loss_L2 += self.criterion_L2(self.fake_P1, self.input_P1) * self.lambda_L2
+
         # combined loss and calculate gradients
-        self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE
+        self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE + self.loss_L2
         if backward:
             self.loss_G.backward()
 

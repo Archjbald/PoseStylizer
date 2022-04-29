@@ -27,11 +27,9 @@ def get_transform(opt):
     elif opt.resize_or_crop == 'crop':
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'scale_width':
-        transform_list.append(transforms.Lambda(
-            lambda img: __scale_width(img, opt.fineSize)))
+        transform_list.append(transforms.Resize(opt.fineSize, transforms.InterpolationMode.BICUBIC))
     elif opt.resize_or_crop == 'scale_width_and_crop':
-        transform_list.append(transforms.Lambda(
-            lambda img: __scale_width(img, opt.loadSize)))
+        transform_list.append(transforms.Resize(opt.fineSize, transforms.InterpolationMode.BICUBIC))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
 
     transform_list += [transforms.ToTensor(),
