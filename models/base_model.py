@@ -71,11 +71,10 @@ class BaseModel(nn.Module):
             network = network.module
 
         if os.path.exists(save_path):
-            named_params = [n for n, _ in network.named_parameters()]
             checkpoint = torch.load(save_path)
+            # named_params = [n for n, _ in network.named_parameters()]
             checkpoint = OrderedDict(
-                [(k.replace('module.', '') if k.replace('module.', '') in named_params else k, v) for k, v in
-                 checkpoint.items()])
+                [(k.replace('module.', ''), v) for k, v in checkpoint.items()])
             try:
                 network.load_state_dict(checkpoint)
             except RuntimeError as err:

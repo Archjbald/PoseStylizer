@@ -68,8 +68,6 @@ class PATNCycle(TransferCycleModel):
 
         # HPE Loss
         self.loss_HPE = 0.
-        self.fake_BP1 = self.netHPE(self.fake_P1)
-        self.fake_BP2 = self.netHPE(self.fake_P2)
         if self.lambda_HPE:
             self.real_BP1 = self.netHPE(self.input_P1)
             self.real_BP2 = self.netHPE(self.input_P2)
