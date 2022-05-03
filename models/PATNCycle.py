@@ -125,6 +125,8 @@ class PATNCycle(TransferCycleModel):
         ret_errors = TransferCycleModel.get_current_errors(self)
         if self.lambda_HPE:
             ret_errors['HPE'] = self.loss_HPE.item()
+        if self.lambda_L2:
+            ret_errors['A'] = self.loss_L2.item()
 
         return ret_errors
 
