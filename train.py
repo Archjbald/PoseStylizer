@@ -133,12 +133,14 @@ def train(opt, model, train_dataset, val_dataset):
             val_errors = {}
             for v, val_data in enumerate(val_dataset):
                 with torch.no_grad():
-                    print(len(val_data))
                     model.set_input(val_data)
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
                 # model.cleanse()
+                if v < 5:
+                    visualizer.display_current_results(model.get_current_visuals(), epoch, save_result=True,
+                                                       lbls=["val", str(v)])
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
 
         # print time used
