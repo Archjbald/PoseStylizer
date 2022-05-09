@@ -164,6 +164,16 @@ class TransferCycleModel(BaseModel):
         self.fake_BP1 = self.netHPE(self.fake_P1)
         self.fake_BP2 = self.netHPE(self.fake_P2)
 
+    def test(self):
+        with torch.no_grad():
+            self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
+            if self.use_mask:
+                self.fake_P2 *= self.get_mask(self.input_BP2)
+
+            self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
+            if self.use_mask:
+                self.fake_P1 *= self.get_mask(self.input_BP1)
+
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
         pred_real = netD(real)
@@ -325,6 +335,26 @@ class TransferCycleModel(BaseModel):
         fake_BP2 = util.draw_pose_from_map(self.fake_BP2.data)[0]
 
         imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_BP2, rec_P1, idt_P2]
+        vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
+        for i, img in enumerate(imgs):
+            vis[:, width * i:width * (i + 1), :] = img
+
+        ret_visuals = OrderedDict([('vis', vis)])
+
+        return ret_visuals
+
+    def get_current_visuals_test(self):
+        nbj = self.opt.BP_input_nc
+        height, width = self.input_P1.size(2), self.input_P1.size(3)
+        input_P1 = util.tensor2im(self.input_P1.data)
+        input_P2 = util.tensor2im(self.input_P2.data)
+        fake_P2 = util.tensor2im(self.fake_P2.data)
+        fake_P1 = util.tensor2im(self.fake_P1.data)
+
+        input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
+        input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
+
+        imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_P1]
         vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
         for i, img in enumerate(imgs):
             vis[:, width * i:width * (i + 1), :] = img

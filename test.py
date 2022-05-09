@@ -42,7 +42,7 @@ def test(opt, model, dataset):
         startTime = time.time()
         model.test()
         endTime = time.time()
-        visuals = model.get_current_visuals()
+        visuals = model.get_current_visuals_test()
         #     visuals = model.get_current_visuals_widerpose()
         img_path = model.get_image_paths()
         img_path = [img_path]
