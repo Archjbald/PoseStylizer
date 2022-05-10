@@ -1,11 +1,14 @@
 import sys
 
 import torch
+import torchvision.transforms
 from torch import nn
 import numpy as np
 import torch.nn.functional as F
-import torchvision.transforms.functional as fn
+import torchvision.transforms as trans
 import torchvision.models as models
+
+from losses.L1_plus_perceptualLoss import PerceptualLoss
 
 from util.util import get_kps
 
@@ -180,3 +183,66 @@ class ColorLossPatch(nn.Module):
             ret_patches.append(patches)
 
         return ret_patches
+
+
+class ColorLossScale(nn.Module):
+    def __init__(self, opt):
+        super().__init__()
+        self.opt = opt
+        self.loss = PerceptualLoss(1, opt.perceptual_layers, opt.gpu_ids)
+        self.nb_parts = 3
+
+    def forward(self, img_in, bp_in, img_out, bp_out):
+        # img_in = torch.concat([img_in, img_in, img_in], dim=0)
+        # bp_in = torch.concat([bp_in, bp_in, bp_in], dim=0)
+        # img_out = torch.concat([img_out, img_out, img_out], dim=0)
+        # bp_out = torch.concat([bp_out, bp_out, bp_out], dim=0)
+
+        img_in_scaled = self.get_scaled(img_in, bp_in)
+        img_out_scaled = self.get_scaled(img_out, bp_out)
+        loss = self.loss(img_out_scaled, img_in_scaled) * self.opt.lambda_patch
+        return loss
+
+    def get_scaled(self, img, bp):
+        """
+        Generate list of patch ids according to skeleton.
+        Skeleton ids are shared across scales, random are not
+        :return: list of ids per scales, num_patches
+
+        Parameters
+        ----------
+        img image (Bx3xHxW)
+        bp skeleton (BxCxHxW)
+        """
+        device = bp.device
+
+        B, C, H, W = bp.shape
+        kps, vis = get_kps(bp, thresh=0.5)
+
+        kps_float = kps.to(float)
+        left_dist = torch.sum((kps_float[:, 5] - kps_float[:, 11]) ** 2, dim=1) ** 0.5
+        right_dist = torch.sum((kps_float[:, 2] - kps_float[:, 8]) ** 2, dim=1) ** 0.5
+        left_vis = vis[:, 5] * vis[:, 11]
+        right_vis = vis[:, 2] * vis[:, 8]
+        units = (left_vis * left_dist + right_dist * right_vis) / (left_vis.to(int) + right_vis.to(int)) / H
+        units = 0.28 / units
+
+        heights = (vis[:, 11] * kps[:, 11, 0] + vis[:, 8] * kps[:, 8, 0]) / (vis[:, 11].to(int) + vis[:, 8].to(int))
+
+        scaled_imgs = torch.zeros_like(img)
+
+        for i in range(B):
+            u = units[i]
+            if u.isnan() or u >= 1 or not u:
+                scaled_imgs[i] = img[i]
+                continue
+
+            resized = trans.functional.resize(img[i], int(u * W), max_size=W)
+            if resized.shape[2] == W:
+                scaled_imgs[i] = img[i]
+            else:
+                h = max(int(H // 2 - heights[i] * u), 0)
+                w = max((W - resized.shape[2]) // 2, 0)
+                scaled_imgs[i, :, h:h + resized.shape[1], w: w + resized.shape[2]] = resized
+
+        return scaled_imgs

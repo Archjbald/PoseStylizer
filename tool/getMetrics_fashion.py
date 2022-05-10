@@ -1,4 +1,5 @@
 import os
+import sys
 from inception_score import get_inception_score
 
 from skimage.io import imread, imsave
@@ -65,13 +66,16 @@ def load_generated_images(images_folder):
     generated_images = []
 
     names = []
-    for img_name in os.listdir(images_folder):
+    img_list = os.listdir(images_folder)
+    for img_name in img_list:
         img = imread(os.path.join(images_folder, img_name))
-        w = int(img.shape[1] / 5)  # h, w ,c
+        w = int(img.shape[1] / LEN_IMG)  # h, w ,c
 
-        input_images.append(addBounding(img[:, :w]))
-        target_images.append(addBounding(img[:, 2 * w:3 * w]))
-        generated_images.append(addBounding(img[:, 4 * w:5 * w]))
+        imgs = [img[:, i * w: (i + 1) * w] for i in range(LEN_IMG)]
+
+        input_images.append(addBounding(imgs[0]))
+        target_images.append(addBounding(imgs[2]))
+        generated_images.append(addBounding(imgs[IDX_FAKE]))
 
         assert img_name.endswith('_vis.png') or img_name.endswith(
             '_vis.jpg'), 'unexpected img name: should end with _vis.png'
@@ -91,25 +95,31 @@ def test(generated_images_dir, annotations_file_test):
     print("Loading images...")
     input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
 
-    print("Compute structured similarity score (SSIM)...")
-    structured_score = ssim_score(generated_images, target_images)
-    print("SSIM score ", structured_score)
-    print(generated_images_dir)
+    if False:
+        print("Compute structured similarity score (SSIM)...")
+        structured_score = ssim_score(generated_images, target_images)
+        print("SSIM score ", structured_score)
+        print(generated_images_dir)
 
-    print("Compute l1 score...")
-    norm_score = l1_score(generated_images, target_images)
-    print("L1 score ", norm_score)
+    if False:
+        print("Compute l1 score...")
+        norm_score = l1_score(generated_images, target_images)
+        print("L1 score ", norm_score)
 
     print("Compute inception score...")
     inception_score = get_inception_score(generated_images)
     print("Inception score ", inception_score)
-    print("Inception score ", inception_score, " SSIM score ", structured_score, " L1 score ", norm_score)
+    # print("Inception score ", inception_score, " SSIM score ", structured_score, " L1 score ", norm_score)
 
 
 if __name__ == "__main__":
     # fix these paths
+
+    LEN_IMG = 5
+    IDX_FAKE = -1
+
     generated_images_dir = './results/fashion_APS/test_latest/images'
-    annotations_file_test = './dataset/fashion_data/fasion-resize-annotation-test.csv'
+    annotations_file_test = './dataset/fashion_data/fasion-resize-annotation-test-shuffle.csv'
 
     test(generated_images_dir, annotations_file_test)
     print(generated_images_dir)

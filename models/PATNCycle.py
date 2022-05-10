@@ -3,6 +3,7 @@ import torch
 from .PoseCycleNet import TransferCycleModel
 from .hpe.simple_bl import get_pose_net
 from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss, PerceptualLoss
+from losses.color_loss import ColorLossScale
 
 
 class PATNCycle(TransferCycleModel):
@@ -34,8 +35,10 @@ class PATNCycle(TransferCycleModel):
             self.criterion_HPE = torch.nn.MSELoss()
             self.lambda_L2 = opt.lambda_A
             if self.lambda_L2:
-                self.criterion_L2 = PerceptualLoss(1, opt.perceptual_layers, self.gpu_ids)
-
+                if opt.use_color_loss:
+                    self.criterion_color = ColorLossScale(opt)
+                else:
+                    self.criterion_L2 = PerceptualLoss(1, opt.perceptual_layers, self.gpu_ids)
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
@@ -47,6 +50,8 @@ class PATNCycle(TransferCycleModel):
         lambda_idt = self.lambda_identity
         lambda_cycle = self.lambda_cycle
         lambda_adv = self.lambda_adversarial
+
+        loss_color = self.criterion_color(self.input_P1, self.input_BP1, self.fake_P2, self.input_BP2)
 
         # Adversarial loss
         self.loss_adv = 0.
@@ -84,8 +89,14 @@ class PATNCycle(TransferCycleModel):
 
         self.loss_L2 = 0
         if self.lambda_L2:
-            self.loss_L2 += self.criterion_L2(self.fake_P2, self.input_P2) * self.lambda_L2
-            self.loss_L2 += self.criterion_L2(self.fake_P1, self.input_P1) * self.lambda_L2
+            if self.opt.use_color_loss:
+                self.loss_L2 += self.criterion_color(self.input_P1, self.input_BP1, self.fake_P2,
+                                                     self.input_BP2) * self.lambda_L2
+                self.loss_L2 += self.criterion_color(self.input_P2, self.input_BP2, self.fake_P1,
+                                                     self.input_BP1) * self.lambda_L2
+            else:
+                self.loss_L2 += self.criterion_L2(self.fake_P2, self.input_P2) * self.lambda_L2
+                self.loss_L2 += self.criterion_L2(self.fake_P1, self.input_P1) * self.lambda_L2
 
         # combined loss and calculate gradients
         self.loss_G = self.loss_adv + self.loss_cycle + self.loss_idt + self.loss_HPE + self.loss_L2

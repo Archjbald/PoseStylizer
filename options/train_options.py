@@ -77,6 +77,8 @@ class TrainOptions(BaseOptions):
                                  help='the generated keypoint loss')
         self.parser.add_argument('--nb_patch', type=int, default=1,
                                  help='number of patches for patch loss')
+        self.parser.add_argument('--use_color_loss', action='store_true',
+                                 help='color loss instead of perceptual for A')
 
         self.parser.add_argument('--use_mask', action='store_true',
                                  help='mask background')
