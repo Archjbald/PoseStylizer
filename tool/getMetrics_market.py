@@ -2,18 +2,16 @@ import os
 from inception_score import get_inception_score
 
 from skimage.io import imread, imsave
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 
 import numpy as np
 import pandas as pd
 
-from tqdm import tqdm
-import re
 
 def l1_score(generated_images, reference_images):
     score_list = []
     for reference_image, generated_image in zip(reference_images, generated_images):
-        score = np.abs(2 * (reference_image/255.0 - 0.5) - 2 * (generated_image/255.0 - 0.5)).mean()
+        score = np.abs(2 * (reference_image / 255.0 - 0.5) - 2 * (generated_image / 255.0 - 0.5)).mean()
         score_list.append(score)
     return np.mean(score_list), np.std(score_list)
 
@@ -21,9 +19,9 @@ def l1_score(generated_images, reference_images):
 def ssim_score(generated_images, reference_images):
     ssim_score_list = []
     for reference_image, generated_image in zip(reference_images, generated_images):
-        ssim = compare_ssim(reference_image, generated_image, gaussian_weights=True, sigma=1.5,
-                            use_sample_covariance=False, multichannel=True,
-                            data_range=generated_image.max() - generated_image.min())
+        ssim = structural_similarity(reference_image, generated_image, gaussian_weights=True, sigma=1.5,
+                                     use_sample_covariance=False, multichannel=True,
+                                     data_range=generated_image.max() - generated_image.min())
         ssim_score_list.append(ssim)
     return np.mean(ssim_score_list), np.std(ssim_score_list)
 
@@ -58,15 +56,20 @@ def load_generated_images(images_folder):
     generated_images = []
 
     names = []
-    for img_name in os.listdir(images_folder):
+    img_list = os.listdir(images_folder)
+    for img_name in img_list:
         img = imread(os.path.join(images_folder, img_name))
-        w = int(img.shape[1] / 5) #h, w ,c
-        input_images.append(img[:, :w])
-        target_images.append(img[:, 2*w:3*w])
-        generated_images.append(img[:, 4*w:5*w])
+        w = int(img.shape[1] / LEN_IMG)  # h, w ,c
+
+        imgs = [img[:, i * w: (i + 1) * w] for i in range(LEN_IMG)]
+
+        input_images.append(imgs[0])
+        target_images.append(imgs[2])
+        generated_images.append(imgs[IDX_FAKE])
 
         # assert img_name.endswith('_vis.png'), 'unexpected img name: should end with _vis.png'
-        assert img_name.endswith('_vis.png') or img_name.endswith('_vis.jpg'), 'unexpected img name: should end with _vis.png'
+        assert img_name.endswith('_vis.png') or img_name.endswith(
+            '_vis.jpg'), 'unexpected img name: should end with _vis.png'
 
         img_name = img_name[:-8]
         img_name = img_name.split('___')
@@ -83,51 +86,52 @@ def load_generated_images(images_folder):
     return input_images, target_images, generated_images, names
 
 
-
 def test(generated_images_dir, annotations_file_test):
     print(generated_images_dir, annotations_file_test)
-    print ("Loading images...")
+    print("Loading images...")
     input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
 
-    print ("Compute inception score...")
+    print("Compute inception score...")
     inception_score = get_inception_score(generated_images)
-    print ("Inception score ", inception_score)
+    print("Inception score ", inception_score)
     print(generated_images_dir)
 
-    print ("Compute structured similarity score (SSIM)...")
-    structured_score = ssim_score(generated_images, target_images)
-    print ("SSIM score ", structured_score)
-    print(generated_images_dir)
+    if False:
+        print("Compute structured similarity score (SSIM)...")
+        structured_score = ssim_score(generated_images, target_images)
+        print("SSIM score ", structured_score)
+        print(generated_images_dir)
 
-    print ("Compute l1 score...")
-    norm_score = l1_score(generated_images, target_images)
-    print ("L1 score ", norm_score)
+        print("Compute l1 score...")
+        norm_score = l1_score(generated_images, target_images)
+        print("L1 score ", norm_score)
 
-    print ("Compute masked inception score...")
-    generated_images_masked = create_masked_image(names, generated_images, annotations_file_test)
-    reference_images_masked = create_masked_image(names, target_images, annotations_file_test)
-    inception_score_masked = get_inception_score(generated_images_masked)
-    print ("Inception score masked ", inception_score_masked)
-    print(generated_images_dir)
+    if False:
+        print("Compute masked inception score...")
+        generated_images_masked = create_masked_image(names, generated_images, annotations_file_test)
+        reference_images_masked = create_masked_image(names, target_images, annotations_file_test)
+        inception_score_masked = get_inception_score(generated_images_masked)
+        print("Inception score masked ", inception_score_masked)
+        print(generated_images_dir)
 
-    print ("Compute masked SSIM...")
-    structured_score_masked = ssim_score(generated_images_masked, reference_images_masked)
-    print ("SSIM score masked ", structured_score_masked)
-    
-    print ("Compute masked l1 score...")
-    norm_score_masked = l1_score(generated_images_masked, reference_images_masked)
-    print ("L1 score masked ", norm_score_masked)
+        print("Compute masked SSIM...")
+        structured_score_masked = ssim_score(generated_images_masked, reference_images_masked)
+        print("SSIM score masked ", structured_score_masked)
 
-    print ("IS", inception_score, " masked IS ", inception_score_masked, " SSIM ", structured_score, " masked SSIM ", structured_score_masked, " l1 ", norm_score, " masked l1 ", norm_score_masked)
+        print("Compute masked l1 score...")
+        norm_score_masked = l1_score(generated_images_masked, reference_images_masked)
+        print("L1 score masked ", norm_score_masked)
+
+    # print("IS", inception_score, " masked IS ", inception_score_masked, " SSIM ", structured_score, " masked SSIM ",
+    #       structured_score_masked, " l1 ", norm_score, " masked l1 ", norm_score_masked)
+
 
 if __name__ == "__main__":
+    LEN_IMG = 5
+    IDX_FAKE = -1
+
     generated_images_dir = './results/market_APS/test_latest/images'
     annotations_file_test = './dataset/market_data/market-annotation-test.csv'
-    
+
     test(generated_images_dir, annotations_file_test)
     print(generated_images_dir)
-
-
-
-
-
