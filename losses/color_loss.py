@@ -193,14 +193,15 @@ class ColorLossScale(nn.Module):
         self.nb_parts = 3
 
     def forward(self, img_in, bp_in, img_out, bp_out):
-        # img_in = torch.concat([img_in, img_in, img_in], dim=0)
-        # bp_in = torch.concat([bp_in, bp_in, bp_in], dim=0)
-        # img_out = torch.concat([img_out, img_out, img_out], dim=0)
-        # bp_out = torch.concat([bp_out, bp_out, bp_out], dim=0)
+        img_in = torch.concat([img_in, img_in, img_in], dim=0)
+        bp_in = torch.concat([bp_in, bp_in, bp_in], dim=0)
+        img_out = torch.concat([img_out, img_out, img_out], dim=0)
+        bp_out = torch.concat([bp_out, bp_out, bp_out], dim=0)
 
-        img_in_scaled = self.get_scaled(img_in, bp_in)
-        img_out_scaled = self.get_scaled(img_out, bp_out)
-        loss = self.loss(img_out_scaled, img_in_scaled) * self.opt.lambda_patch
+        img_in_scaled, masks_in = self.get_scaled(img_in, bp_in)
+        img_out_scaled, masks_out = self.get_scaled(img_out, bp_out)
+        masks = masks_in * masks_out
+        loss = self.loss(img_out_scaled * masks, img_in_scaled * masks) * self.opt.lambda_patch
         return loss
 
     def get_scaled(self, img, bp):
@@ -230,19 +231,23 @@ class ColorLossScale(nn.Module):
         heights = (vis[:, 11] * kps[:, 11, 0] + vis[:, 8] * kps[:, 8, 0]) / (vis[:, 11].to(int) + vis[:, 8].to(int))
 
         scaled_imgs = torch.zeros_like(img)
+        masks = torch.zeros((B, 1, H, W), dtype=torch.bool, device=device)
 
         for i in range(B):
             u = units[i]
             if u.isnan() or u >= 1 or not u:
                 scaled_imgs[i] = img[i]
+                masks[i] = False
                 continue
 
             resized = trans.functional.resize(img[i], int(u * W), max_size=W)
             if resized.shape[2] == W:
                 scaled_imgs[i] = img[i]
+                masks[i] = True
             else:
                 h = max(int(H // 2 - heights[i] * u), 0)
                 w = max((W - resized.shape[2]) // 2, 0)
                 scaled_imgs[i, :, h:h + resized.shape[1], w: w + resized.shape[2]] = resized
+                masks[i, :, h:h + resized.shape[1], w: w + resized.shape[2]] = True
 
-        return scaled_imgs
+        return scaled_imgs, masks
