@@ -121,5 +121,13 @@ if __name__ == "__main__":
     generated_images_dir = './results/fashion_APS/test_latest/images'
     annotations_file_test = './dataset/fashion_data/fasion-resize-annotation-test-shuffle.csv'
 
+    args = sys.argv[1:].copy()
+    if len(args):
+        generated_images_dir = f'./results/{args[0]}/test_latest/images'
+    if len(args) > 1:
+        LEN_IMG = int(args[1])
+    if len(args) > 2:
+        LEN_IMG = int(args[2])
+
     test(generated_images_dir, annotations_file_test)
     print(generated_images_dir)
