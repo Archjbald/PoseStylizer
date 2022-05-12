@@ -45,6 +45,9 @@ class BaseModel(nn.Module):
     def get_current_errors(self):
         return {}
 
+    def get_current_visuals_test(self):
+        return self.get_current_visuals()
+
     def save(self, label, epoch, total_steps):
         pass
 

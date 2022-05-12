@@ -88,24 +88,29 @@ def load_generated_images(images_folder):
 
 
 def test(generated_images_dir, annotations_file_test):
+    msg = ""
     print(generated_images_dir, annotations_file_test)
     print("Loading images...")
     input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
 
     print("Compute inception score...")
     inception_score = get_inception_score(generated_images)
-    print("Inception score ", inception_score)
-    print(generated_images_dir)
+    line = f"\nInception score {inception_score}"
+    print(line)
+    msg += line
 
     if False:
         print("Compute structured similarity score (SSIM)...")
         structured_score = ssim_score(generated_images, target_images)
-        print("SSIM score ", structured_score)
-        print(generated_images_dir)
+        line = f"\nSSIM score {structured_score}"
+        print(line)
+        msg += line
 
         print("Compute l1 score...")
         norm_score = l1_score(generated_images, target_images)
-        print("L1 score ", norm_score)
+        print(line)
+        line = f"\nL1 score {norm_score}"
+        msg += line
 
     if False:
         print("Compute masked inception score...")
@@ -113,7 +118,6 @@ def test(generated_images_dir, annotations_file_test):
         reference_images_masked = create_masked_image(names, target_images, annotations_file_test)
         inception_score_masked = get_inception_score(generated_images_masked)
         print("Inception score masked ", inception_score_masked)
-        print(generated_images_dir)
 
         print("Compute masked SSIM...")
         structured_score_masked = ssim_score(generated_images_masked, reference_images_masked)
@@ -125,6 +129,8 @@ def test(generated_images_dir, annotations_file_test):
 
     # print("IS", inception_score, " masked IS ", inception_score_masked, " SSIM ", structured_score, " masked SSIM ",
     #       structured_score_masked, " l1 ", norm_score, " masked l1 ", norm_score_masked)
+
+    return msg
 
 
 if __name__ == "__main__":
@@ -140,7 +146,8 @@ if __name__ == "__main__":
     if len(args) > 1:
         LEN_IMG = int(args[1])
     if len(args) > 2:
-        LEN_IMG = int(args[2])
+        IDX_FAKE = int(args[2])
 
-    test(generated_images_dir, annotations_file_test)
-    print(generated_images_dir)
+    msg = test(generated_images_dir, annotations_file_test)
+    with open(generated_images_dir.replace("images", "eval_results.log"), "w") as f:
+        f.write(msg)

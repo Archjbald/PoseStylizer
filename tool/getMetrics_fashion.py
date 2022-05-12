@@ -92,31 +92,38 @@ def load_generated_images(images_folder):
 
 def test(generated_images_dir, annotations_file_test):
     # load images
+    msg = ""
     print("Loading images...")
     input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
+
 
     if False:
         print("Compute structured similarity score (SSIM)...")
         structured_score = ssim_score(generated_images, target_images)
-        print("SSIM score ", structured_score)
-        print(generated_images_dir)
+        line = f"\nSSIM score {structured_score}"
+        print(line)
+        msg += line
 
     if False:
-        print("Compute l1 score...")
         norm_score = l1_score(generated_images, target_images)
-        print("L1 score ", norm_score)
+        print(line)
+        line = f"\nL1 score {norm_score}"
+        msg += line
 
     print("Compute inception score...")
     inception_score = get_inception_score(generated_images)
-    print("Inception score ", inception_score)
+    line = f"\nInception score {inception_score}"
+    print(line)
+    msg += line
     # print("Inception score ", inception_score, " SSIM score ", structured_score, " L1 score ", norm_score)
 
+    return msg
 
 if __name__ == "__main__":
     # fix these paths
 
     LEN_IMG = 5
-    IDX_FAKE = -1
+    IDX_FAKE = 4
 
     generated_images_dir = './results/fashion_APS/test_latest/images'
     annotations_file_test = './dataset/fashion_data/fasion-resize-annotation-test-shuffle.csv'
@@ -127,7 +134,8 @@ if __name__ == "__main__":
     if len(args) > 1:
         LEN_IMG = int(args[1])
     if len(args) > 2:
-        LEN_IMG = int(args[2])
+        IDX_FAKE = int(args[2])
 
-    test(generated_images_dir, annotations_file_test)
-    print(generated_images_dir)
+    msg = test(generated_images_dir, annotations_file_test)
+    with open(generated_images_dir.replace("images", "eval_results.log"), "w") as f:
+        f.write(msg)
