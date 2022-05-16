@@ -240,7 +240,7 @@ class ColorLossScale(nn.Module):
                 masks[i] = False
                 continue
 
-            resized = trans.functional.resize(img[i], int(u * W), max_size=W)
+            resized = trans.functional.resize(img[i], (int(u * H), int(u * W)))
             if resized.shape[2] == W:
                 scaled_imgs[i] = img[i]
                 masks[i] = True
