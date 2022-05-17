@@ -191,6 +191,7 @@ class ColorLossScale(nn.Module):
         self.opt = opt
         self.loss = PerceptualLoss(1, opt.perceptual_layers, opt.gpu_ids)
         self.nb_parts = 3
+        self.scale = opt.dataset in ['fashion', 'market']
 
     def forward(self, img_in, bp_in, img_out, bp_out):
         img_in = torch.concat([img_in, img_in, img_in], dim=0)
@@ -218,6 +219,9 @@ class ColorLossScale(nn.Module):
         device = bp.device
 
         B, C, H, W = bp.shape
+        if not self.scale:
+            return img, torch.ones((B, 1, H, W), dtype=torch.bool, device=device)
+
         kps, vis = get_kps(bp, thresh=0.5)
 
         kps_float = kps.to(float)
