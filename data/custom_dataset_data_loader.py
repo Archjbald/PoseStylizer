@@ -1,6 +1,8 @@
 import torch.utils.data
 from data.base_data_loader import BaseDataLoader
 
+from util.random_seed import seed_worker
+
 
 def CreateDataset(opt):
     dataset = None
@@ -26,10 +28,14 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def initialize(self, opt):
         BaseDataLoader.initialize(self, opt)
         self.dataset = CreateDataset(opt)
+        g = torch.Generator()
+        g.manual_seed(0)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=opt.batchSize,
             shuffle=not opt.serial_batches,
+            worker_init_fn=seed_worker,
+            generator=g,
             num_workers=int(opt.nThreads))
 
     def load_data(self):

@@ -3,8 +3,5 @@ def CreateDataLoader(opt):
     data_loader = CustomDatasetDataLoader()
     print(data_loader.name())
 
-    if "shuffle" in opt.pairLst:
-        opt.shuffle = True
-
     data_loader.initialize(opt)
     return data_loader

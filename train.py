@@ -1,7 +1,5 @@
 import time
-import numpy as np
 import os
-import sys
 import pickle
 from collections import OrderedDict
 from argparse import Namespace
@@ -14,6 +12,7 @@ from data.data_loader import CreateDataLoader
 from models.models import create_model
 from util.visualizer import Visualizer
 from util.util import avg_dic, debug_gpu_memory, get_gpu_memory
+from util.random_seed import seed_all
 from test import set_test_opt
 
 
@@ -166,6 +165,7 @@ def train(opt, model, train_dataset, val_dataset):
 def main():
     opt = TrainOptions().parse()
 
+    seed_all(opt.seed)
     train_data_loader = CreateDataLoader(opt)
     train_dataset = train_data_loader.load_data()
 

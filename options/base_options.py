@@ -28,7 +28,6 @@ class BaseOptions():
                                  help='name of the experiment. It decides where to store samples and models')
         self.parser.add_argument('--dataset_mode', type=str, default='', help='chooses how datasets are loaded')
         self.parser.add_argument('--random', action='store_true', help='if true, randomly shuffle input images')
-        self.parser.add_argument('--shuffle', action='store_true', help='if true, shuffle actors for training')
         self.parser.add_argument('--extend', action='store_true', help='use extended version of datasets (27 joints)')
         self.parser.add_argument('--debug', action='store_true', help='debug mode')
 
@@ -101,6 +100,8 @@ class BaseOptions():
         self.parser.add_argument('--use_transfer_layer', action='store_true',
                                  help='Use transfer layer in the generator')
 
+        self.parser.add_argument('--seed', type=int, default=0, help='Seed used to initialize random generators')
+
         self.parser.set_defaults(pool_size=0)
 
     def parse(self):
@@ -131,14 +132,10 @@ class BaseOptions():
         else:
             raise ValueError(self.opt.CUT_mode)
 
-
         # Path
         if not self.opt.pairLst:
             self.opt.pairLst = os.path.join(self.opt.dataroot,
                                             f'{self.opt.dataset}-pairs-{"train" if self.opt.isTrain else "test"}.csv')
-
-        if self.opt.shuffle and "shuffle" not in self.opt.pairLst:
-            self.opt.pairLst = self.opt.pairLst.replace('.csv', '-shuffle.csv')
 
         # if self.opt.debug and "small" not in self.opt.pairLst:
         #     self.opt.pairLst = self.opt.pairLst.replace('.csv', '-small.csv')
