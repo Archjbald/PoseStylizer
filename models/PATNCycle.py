@@ -51,8 +51,6 @@ class PATNCycle(TransferCycleModel):
         lambda_cycle = self.lambda_cycle
         lambda_adv = self.lambda_adversarial
 
-        loss_color = self.criterion_color(self.input_P1, self.input_BP1, self.fake_P2, self.input_BP2)
-
         # Adversarial loss
         self.loss_adv = 0.
         loss_adv_1 = 0.
