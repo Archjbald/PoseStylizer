@@ -26,6 +26,9 @@ def create_model(opt):
     elif opt.model == 'PATNCycle':
         from .PATNCycle import PATNCycle
         model = PATNCycle()
+    elif opt.model == 'UCCPT':
+        from .UCCPT import UCCPT
+        model = UCCPT()
     else:
         raise ValueError("Model [%s] not recognized." % opt.model)
 

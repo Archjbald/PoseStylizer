@@ -4,3 +4,4 @@ Pillow
 scikit-image
 dominate
 matplotlib
+pytorch_gan_metrics

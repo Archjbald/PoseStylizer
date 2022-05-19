@@ -5,6 +5,7 @@ import sys
 import pickle
 from collections import OrderedDict
 from argparse import Namespace
+from pytorch_gan_metrics import get_inception_score
 
 import torch
 
@@ -63,6 +64,7 @@ def train(opt, model, train_dataset, val_dataset):
         f.write(''.join(['=' * 10, 'Epoch 0', "=" * 10, '\n']))
 
     stat_errors = OrderedDict([('count', 0)])
+    best_IS = 0
     for epoch in range(epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         epoch_iter = 0
@@ -125,23 +127,34 @@ def train(opt, model, train_dataset, val_dataset):
         if epoch % opt.save_epoch_freq == 0:
             print('saving the model at the end of epoch %d, iters %d' %
                   (epoch, total_steps))
-            model.save('latest', epoch + 1, total_steps)
             model.save(epoch, epoch + 1, total_steps)
 
         # Validation
         if opt.backward in ['basic'] and epoch % opt.val_epoch_freq == 0:
             val_errors = {}
+            fakes = []
             for v, val_data in enumerate(val_dataset):
                 with torch.no_grad():
                     model.set_input(val_data)
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
-                # model.cleanse()
+                fakes.append(model.fake_P1.clone().cpu())
                 if v < 5:
                     visualizer.display_current_results(model.get_current_visuals(), epoch, save_result=True,
                                                        lbls=["val", str(v)])
+            current_IS = get_inception_score(torch.cat(fakes))
+            val_errors["IS_val"] = current_IS[0]
+            val_errors["IS_std"] = current_IS[1]
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)
+
+            if current_IS[0] > best_IS:
+                print('saving the best model (epoch %d, total_steps %d)' %
+                      (epoch, total_steps))
+                model.save('best', epoch, total_steps)
+                best_IS = current_IS[0]
+
+            del fakes
 
         # print time used
         print('End of epoch %d / %d \t Time Taken: %d sec' %
