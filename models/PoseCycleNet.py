@@ -100,16 +100,16 @@ class TransferCycleModel(BaseModel):
             self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             if opt.with_D_simple:
                 self.fake_pool = ImagePool(opt.pool_size)
-                self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr,
-                                                    betas=(opt.beta1, 0.999))
+                self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr_D,
+                                                    betas=(opt.beta1, opt.beta2))
             if opt.with_D_PB:
                 self.fake_PB_pool = ImagePool(opt.pool_size)
-                self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr,
-                                                       betas=(opt.beta1, 0.999))
+                self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr_D,
+                                                       betas=(opt.beta1, opt.beta2))
             if opt.with_D_PP:
                 self.fake_PP_pool = ImagePool(opt.pool_size)
-                self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr,
-                                                       betas=(opt.beta1, 0.999))
+                self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr_D,
+                                                       betas=(opt.beta1, opt.beta2))
 
             self.optimizers = []
             self.schedulers = []

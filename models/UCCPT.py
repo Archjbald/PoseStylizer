@@ -49,6 +49,13 @@ class UCCPT(TransferCycleModel):
         self.fake_BP1, self.fake_BP1_feats = self.netHPE(self.fake_P1)
         self.fake_BP2, self.fake_BP2_feats = self.netHPE(self.fake_P2)
 
+    def evaluate_HPE(self, feats_out, feats_in):
+        loss = 0
+        for i in range(len(feats_in)):
+            loss += self.criterion_HPE(feats_in[i], feats_out[i])
+
+        return loss
+
     def backward_G(self, backward=True):
         """Calculate the loss for generators G_A and G_B"""
         lambda_idt = self.lambda_identity
@@ -78,8 +85,8 @@ class UCCPT(TransferCycleModel):
         if self.lambda_HPE:
             self.real_BP1, self.real_BP1_feats = self.netHPE(self.input_P1)
             self.real_BP2, self.real_BP2_feats = self.netHPE(self.input_P2)
-            self.loss_HPE += self.criterion_HPE(self.fake_BP1_feats, self.real_BP1_feats) * self.lambda_HPE
-            self.loss_HPE += self.criterion_HPE(self.fake_BP2_feats, self.real_BP2_feats) * self.lambda_HPE
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP1_feats, self.real_BP1_feats) * self.lambda_HPE
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP2_feats, self.real_BP2_feats) * self.lambda_HPE
 
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||

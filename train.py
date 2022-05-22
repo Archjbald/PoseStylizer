@@ -82,8 +82,9 @@ def train(opt, model, train_dataset, val_dataset):
                 if opt.backward == 'cut':
                     model.data_dependent_initialize(data)
                 model.parallelize()
-                print('saving the initialized model')
-                model.save('init', epoch, total_steps)
+                if not opt.continue_train:
+                    print('saving the initialized model')
+                    model.save('init', epoch, total_steps)
 
             model.set_input(data)
             model.optimize_parameters()

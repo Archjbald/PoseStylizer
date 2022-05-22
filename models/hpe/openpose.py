@@ -165,8 +165,8 @@ class OpenPose(nn.Module):
         out6_2 = self.model6_2(out6)
 
         heatmaps = self.get_final_heatmaps(x, out6_2)
-        inter_maps = torch.cat([out1_2, out2_2, out3_2,
-                                out4_2, out5_2, out6_2], 1)
+        inter_maps = [out1_2, out2_2, out3_2,
+                      out4_2, out5_2, out6_2]
 
         return heatmaps, inter_maps
 
