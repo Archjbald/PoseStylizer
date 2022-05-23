@@ -168,7 +168,7 @@ def train(opt, model, train_dataset, val_dataset):
 def main():
     opt = TrainOptions().parse()
 
-    seed_all(opt.seed)
+    opt.seed = seed_all(opt.seed)
     train_data_loader = CreateDataLoader(opt)
     train_dataset = train_data_loader.load_data()
 

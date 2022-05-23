@@ -19,6 +19,8 @@ def seed_all(seed=None):
     torch.backends.cudnn.benchmark = False
     # torch.use_deterministic_algorithms(True)
 
+    return seed
+
 
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2 ** 32

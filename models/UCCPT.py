@@ -4,6 +4,7 @@ from .PoseCycleNet import TransferCycleModel
 from .hpe.openpose import get_pose_net
 from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss, PerceptualLoss
 from losses.color_loss import ColorLossScale
+from util.image_pool import ImagePoolPast
 
 
 class UCCPT(TransferCycleModel):
@@ -20,6 +21,9 @@ class UCCPT(TransferCycleModel):
         opt.which_model_netG = "PATN"
         opt.norm = 'switchable'
 
+        if opt.pool_size:
+            opt.pool_size = opt.batchSize
+
         TransferCycleModel.initialize(self, opt)
 
         self.model_names.append('netHPE')
@@ -33,6 +37,8 @@ class UCCPT(TransferCycleModel):
             self.criterion_idt = self.criterion_cycle
             self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()
+
+            self.fake_PB_pool = ImagePoolPast(opt.pool_size)
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
