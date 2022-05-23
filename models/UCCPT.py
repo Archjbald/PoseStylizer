@@ -24,9 +24,9 @@ class UCCPT(TransferCycleModel):
 
         self.model_names.append('netHPE')
         self.netHPE = get_pose_net()
-        self.percep_model = self.netHPE.get_feature_extractor(opt.perceptual_layers, self.gpu_ids)
 
         if self.isTrain:
+            self.percep_model = self.netHPE.get_feature_extractor(opt.perceptual_layers, self.gpu_ids)
             self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids,
                                                           percep_is_l1=True,
                                                           submodel=self.percep_model)
