@@ -60,6 +60,12 @@ class KeyDataset(BaseDataset):
         BP1_img = np.load(BP1_path)  # h, w, c
         BP2_img = np.load(BP2_path)
 
+        THRESHOLD = 7000.  # ~ 880 * 8
+        if self.opt.phase == 'train' or self.opt.random:
+            if BP1_img.sum() < THRESHOLD or BP2_img.sum() < THRESHOLD:
+                # get a new img
+                return self.__getitem__(index)
+
         # P1_img = Image.new('RGB', P1_img.size)
         # P2_img = Image.new('RGB', P2_img.size)
         # BP2_img = np.empty_like(BP2_img)
