@@ -55,6 +55,22 @@ class UCCPT(TransferCycleModel):
         self.fake_BP1, self.fake_BP1_feats = self.netHPE(self.fake_P1)
         self.fake_BP2, self.fake_BP2_feats = self.netHPE(self.fake_P2)
 
+    def test(self):
+        with torch.no_grad():
+            self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
+            if self.use_mask:
+                self.fake_P2 *= self.get_mask(self.input_BP2)
+
+            self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
+            if self.use_mask:
+                self.fake_P1 *= self.get_mask(self.input_BP1)
+
+            self.fake_BP1 = self.netHPE(self.fake_P1)[0]
+            self.fake_BP2 = self.netHPE(self.fake_P2)[0]
+            self.real_BP1 = self.netHPE(self.input_P1)[0]
+            self.real_BP2 = self.netHPE(self.input_P2)[0]
+
+
     def evaluate_HPE(self, feats_out, feats_in):
         loss = 0
         for i in range(len(feats_in)):

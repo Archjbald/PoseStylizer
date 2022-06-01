@@ -174,6 +174,11 @@ class TransferCycleModel(BaseModel):
             if self.use_mask:
                 self.fake_P1 *= self.get_mask(self.input_BP1)
 
+            self.fake_BP1 = self.netHPE(self.fake_P1)
+            self.fake_BP2 = self.netHPE(self.fake_P2)
+            self.real_BP1 = self.netHPE(self.input_P1)
+            self.real_BP2 = self.netHPE(self.input_P2)
+
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
         pred_real = netD(real)
