@@ -19,6 +19,8 @@ import time
 from tensorflow.python.ops import array_ops
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.get_logger().setLevel('ERROR')
 
 import skimage.io
 import six
@@ -65,19 +67,32 @@ class ClassifierTFHub:
         self.module = tfhub.load(INCEPTION_TFHUB)
         self.return_tensor = return_tensor
 
-    @tf.function
+    @tf.function(input_signature=[tf.TensorSpec([None, None, None, 3], np.float32)])
     def __call__(self, images):
+        return tf.py_function(self.classify, [images], Tout=np.float32, name='classify')
+
+    def classify(self, images):
         output = self.module(images)
         output = output['logits']
-        # output = {'logits': output['logits']}
-        # if self.return_tensor:
-        #     assert len(output) == 1
-        #     output = list(output.values())[0]
         output = tf.nest.map_structure(tf.keras.layers.Flatten(), output)
         return output
 
 
-classifier = ClassifierTFHub()
+# classifier = ClassifierTFHub()
+# tf.compat.v1.disable_eager_execution()
+classifier = tfhub.load(INCEPTION_TFHUB)
+
+
+@tf.function(input_signature=[tf.TensorSpec([None, None, None, 3], np.float32)])
+def classfy_fn(images):
+    return tf.py_function(classify, [images], Tout=np.float32, name='classify')
+
+
+def classify(images):
+    output = classifier(images)
+    output = output['logits']
+    output = tf.nest.map_structure(tf.keras.layers.Flatten(), output)
+    return output
 
 
 def inception_logits(images, num_splits=1):
@@ -88,7 +103,7 @@ def inception_logits(images, num_splits=1):
     logits = tf.nest.map_structure(
         tf.stop_gradient,
         tf.map_fn(
-            fn=classifier,
+            fn=classify,
             elems=array_ops.stack(generated_images_list),
             parallel_iterations=8,
             swap_memory=True,
