@@ -161,7 +161,6 @@ class TransferCycleModel(BaseModel):
             self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
             self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
 
-
     def test(self):
         with torch.no_grad():
             self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
@@ -172,10 +171,10 @@ class TransferCycleModel(BaseModel):
             if self.use_mask:
                 self.fake_P1 *= self.get_mask(self.input_BP1)
 
-            self.fake_BP1 = self.netHPE(self.fake_P1)
-            self.fake_BP2 = self.netHPE(self.fake_P2)
-            self.real_BP1 = self.netHPE(self.input_P1)
-            self.real_BP2 = self.netHPE(self.input_P2)
+            self.fake_BP1 = self.netHPE(self.fake_P1)[0]
+            self.fake_BP2 = self.netHPE(self.fake_P2)[0]
+            self.real_BP1 = self.netHPE(self.input_P1)[0]
+            self.real_BP2 = self.netHPE(self.input_P2)[0]
 
     def backward_D_basic(self, netD, real, fake, backward=True):
         # Real
