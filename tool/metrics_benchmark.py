@@ -71,7 +71,10 @@ def get_pckh(results_dir):
         nAll = nAll + valid_points(tycords)
         nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords, tycords, head_size, alpha)
 
-    print(f'{nCorrect}/{nAll} : {nCorrect * 1.0 / nAll:.3f}%')
+    pckh = nCorrect * 1.0 / nAll
+    print(f'{nCorrect}/{nAll} : {pckh:.3f}%')
+
+    return pckh
 
 
 def get_metrics(results_dir, len_img, idx_fake):
