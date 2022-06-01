@@ -119,10 +119,10 @@ class TransferModel(BaseModel):
 
             self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
 
-            self.fake_BP1 = self.netHPE(self.fake_P1)
-            self.fake_BP2 = self.netHPE(self.fake_P2)
-            self.real_BP1 = self.netHPE(self.input_P1)
-            self.real_BP2 = self.netHPE(self.input_P2)
+            self.fake_BP1 = self.netHPE(self.fake_P1)[0]
+            self.fake_BP2 = self.netHPE(self.fake_P2)[0]
+            self.real_BP1 = self.netHPE(self.input_P1)[0]
+            self.real_BP2 = self.netHPE(self.input_P2)[0]
 
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
