@@ -38,8 +38,8 @@ def load_generated_images(images_folder, len_img, idx_fake):
 
         names.append([fr, to])
 
-    return (np.concatenate(input_images, axis=0), np.concatenate(target_images, axis=0),
-            np.concatenate(generated_images, axis=0), names)
+    return (np.stack(input_images, axis=0), np.stack(target_images, axis=0),
+            np.stack(generated_images, axis=0), names)
 
 
 def get_pckh(results_dir):
