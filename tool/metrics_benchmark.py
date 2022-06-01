@@ -72,19 +72,23 @@ def get_pckh(results_dir):
         nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords, tycords, head_size, alpha)
 
     pckh = nCorrect * 1.0 / nAll
-    print(f'{nCorrect}/{nAll} : {pckh:.3f}%')
+    # print(f'{nCorrect}/{nAll} : {pckh:.3f}%')
 
-    return pckh
+    return pckh, nCorrect, nAll
 
 
 def get_metrics(results_dir, len_img, idx_fake):
     input_images, target_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
 
-    # IS_input = get_inception_score(input_images)
-    # IS_output = get_inception_score(generated_images)
+    IS_input = get_inception_score(input_images)
+    print(f"IS input: {IS_input[0]}, std: {IS_input[0]}")
+
+    IS_output = get_inception_score(generated_images)
+    print(f"IS output: {IS_output[0]}, std: {IS_output[0]}")
 
     PCKs = get_pckh(results_dir)
+    print(f'PCKh: {PCKs[0]:.3f}% ({PCKs[1]}/{PCKs[2]} )')
 
 
 def get_args():
