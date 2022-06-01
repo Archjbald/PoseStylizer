@@ -1,7 +1,7 @@
 import torch
 
 from .PoseCycleNet import TransferCycleModel
-from .hpe.simple_bl import get_pose_net
+from .hpe.openpose import get_pose_net
 import util.util as util
 
 
@@ -42,6 +42,9 @@ class TransferCycleHPEModel(TransferCycleModel):
         if not self.isTrain or self.lambda_identity:
             self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
             self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
+
+        self.fake_BP1 = self.netHPE(self.fake_P1)
+        self.fake_BP2 = self.netHPE(self.fake_P2)
 
     def evaluate_HPE(self, fake, real):
         annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0

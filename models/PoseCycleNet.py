@@ -161,8 +161,6 @@ class TransferCycleModel(BaseModel):
             self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
             self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
 
-        self.fake_BP1 = self.netHPE(self.fake_P1)
-        self.fake_BP2 = self.netHPE(self.fake_P2)
 
     def test(self):
         with torch.no_grad():
