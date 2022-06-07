@@ -79,21 +79,21 @@ def get_pckh(results_dir):
 
 
 def get_metrics(results_dir, len_img, idx_fake):
-    print('Loading images...')
+    print('Loading images from ', results_dir)
     input_images, target_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
     print(f'{len(input_images)} images loaded\n')
 
     print('Input images:')
     IS_input = get_inception_score(input_images)
-    print(f"IS input: {IS_input[0]}, std: {IS_input[0]}")
+    print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
 
     print('Input generated:')
     IS_output = get_inception_score(generated_images)
-    print(f"IS output: {IS_output[0]}, std: {IS_output[0]}")
+    print(f"IS output: {IS_output[0]}, std: {IS_output[1]}")
 
     PCKs = get_pckh(results_dir)
-    print(f'PCKh: {PCKs[0]:.3f}% ({PCKs[1]}/{PCKs[2]} )')
+    print(f'PCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
 
 def get_last_dir(dpath):
