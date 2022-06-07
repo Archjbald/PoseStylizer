@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import glob
 
 import skimage
 import numpy as np
@@ -78,12 +79,16 @@ def get_pckh(results_dir):
 
 
 def get_metrics(results_dir, len_img, idx_fake):
+    print('Loading images...')
     input_images, target_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
+    print(f'{len(input_images)} images loaded\n')
 
+    print('Input images:')
     IS_input = get_inception_score(input_images)
     print(f"IS input: {IS_input[0]}, std: {IS_input[0]}")
 
+    print('Input generated:')
     IS_output = get_inception_score(generated_images)
     print(f"IS output: {IS_output[0]}, std: {IS_output[0]}")
 
@@ -91,20 +96,34 @@ def get_metrics(results_dir, len_img, idx_fake):
     print(f'PCKh: {PCKs[0]:.3f}% ({PCKs[1]}/{PCKs[2]} )')
 
 
+def get_last_dir(dpath):
+    last_dir = ''
+    last_mtime = 0
+    for fold in glob.glob(os.path.join(dpath, '*/')):
+        mtime = os.path.getmtime(fold)
+        if mtime > last_mtime:
+            last_mtime = mtime
+            last_dir = fold
+
+    return last_dir
+
+
 def get_args():
     len_img = 5
     idx_fake = 4
 
-    results_dir = './results/market_APS/test_latest'
+    results_dir = './results/market_APS'
     annotations_file_test = './dataset/market_data/market-annotation-test.csv'
 
     args = sys.argv[1:].copy()
     if len(args):
-        results_dir = f'./results/{args[0]}/test_latest'
+        results_dir = f'./results/{args[0]}'
     if len(args) > 1:
         len_img = int(args[1])
     if len(args) > 2:
         idx_fake = int(args[2])
+
+    results_dir = get_last_dir(results_dir)
 
     return results_dir, len_img, idx_fake
 
