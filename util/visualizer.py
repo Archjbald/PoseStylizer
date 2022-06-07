@@ -143,25 +143,26 @@ class Visualizer():
             log_file.write('%s\n' % message)
 
     # save image to the disk
-    def save_images(self, webpage, visuals, image_path):
+    def save_images(self, webpage, visuals, image_paths):
         image_dir = webpage.get_image_dir()
-        short_path = ntpath.basename(image_path[0])
-        name = os.path.splitext(short_path)[0]
+        for i, img_path in enumerate(image_paths):
+            short_path = ntpath.basename(img_path)
+            name = os.path.splitext(short_path)[0]
 
-        webpage.add_header(name)
-        ims = []
-        txts = []
-        links = []
+            webpage.add_header(name)
+            ims = []
+            txts = []
+            links = []
 
-        for label, image_numpy in visuals.items():
-            image_name = '%s_%s.jpg' % (image_path[0], label)
-            save_path = os.path.join(image_dir, image_name)
-            util.save_image(image_numpy, save_path)
+            for label, image_numpy in visuals[i].items():
+                image_name = '%s_%s.jpg' % (img_path, label)
+                save_path = os.path.join(image_dir, image_name)
+                util.save_image(image_numpy, save_path)
 
-            ims.append(image_name)
-            txts.append(label)
-            links.append(image_name)
-        webpage.add_images(ims, txts, links, width=self.win_size)
+                ims.append(image_name)
+                txts.append(label)
+                links.append(image_name)
+            webpage.add_images(ims, txts, links, width=self.win_size)
 
     # save a group of uncurated images to the disk
     def save_images_uncurated(self, webpage, images, count):

@@ -26,7 +26,7 @@ class HPEAnnots:
             annots['y'] += kps[:, :, 1].tolist()
 
         if img_paths:
-            self.img_paths += img_paths.split('___')
+            self.img_paths += img_paths
 
     def save(self, path):
         for name, annots in [('real', self.annots_real), ('fake', self.annots_fake)]:
@@ -54,7 +54,8 @@ def test(opt, model, dataset):
     hpe_annots = HPEAnnots()
 
     # create website
-    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
+    web_dir = os.path.join(opt.results_dir, opt.name,
+                           f"{opt.phase}_{opt.which_epoch}" + ("_shuffle" if "shuffle" in opt.pairLst else ""))
 
     webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 
@@ -76,13 +77,12 @@ def test(opt, model, dataset):
         endTime = time.time()
         visuals = model.get_current_visuals_test()
         #     visuals = model.get_current_visuals_widerpose()
-        img_path = model.get_image_paths()
+        img_paths = model.get_image_paths()
 
-        hpe_annots.add_annots(model.real_BP1, model.fake_BP1, img_paths=img_path)
-        hpe_annots.add_annots(model.real_BP2, model.fake_BP2)
+        hpe_annots.add_annots(model.real_BP1, model.fake_BP1, img_paths=[ip.split('___')[0] for ip in img_paths])
+        hpe_annots.add_annots(model.real_BP2, model.fake_BP2, img_paths=[ip.split('___')[1] for ip in img_paths])
 
-        img_path = [img_path]
-        visualizer.save_images(webpage, visuals, img_path)
+        visualizer.save_images(webpage, visuals, img_paths)
         if not i % 100:
             print(i)
 
@@ -92,12 +92,13 @@ def test(opt, model, dataset):
 
 def set_test_opt(opt, max_dataset_size=None):
     opt.nThreads = 0  # test code only supports nThreads = 1
-    opt.batchSize = 1  # test code only supports batchSize = 1
+    opt.batchSize = 2  # test code only supports batchSize = 1
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
     opt.phase = 'test'
     opt.isTrain = False
     opt.pairLst = opt.pairLst.replace('train', 'test')
+    opt.random = False
     if max_dataset_size:
         opt.max_dataset_size = max_dataset_size
 

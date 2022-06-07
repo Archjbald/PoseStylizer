@@ -128,7 +128,7 @@ class TransferCycleModel(BaseModel):
     def set_input(self, input):
         self.input_P1, self.input_BP1 = input['P1'], input['BP1'][:, :18]
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :18]
-        self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
+        self.image_paths = [input['P1_path'][i] + '___' + input['P2_path'][i] for i in range(len(input['P1_path']))]
 
         if len(self.gpu_ids) > 0:
             self.input_P1 = self.input_P1.cuda()
@@ -348,20 +348,21 @@ class TransferCycleModel(BaseModel):
     def get_current_visuals_test(self):
         nbj = self.opt.BP_input_nc
         height, width = self.input_P1.size(2), self.input_P1.size(3)
-        input_P1 = util.tensor2im(self.input_P1.data)
-        input_P2 = util.tensor2im(self.input_P2.data)
-        fake_P2 = util.tensor2im(self.fake_P2.data)
-        fake_P1 = util.tensor2im(self.fake_P1.data)
+        inputs_P1 = util.tensors2ims(self.input_P1.data)
+        inputs_P2 = util.tensors2ims(self.input_P2.data)
+        fakes_P2 = util.tensors2ims(self.fake_P2.data)
+        fakes_P1 = util.tensors2ims(self.fake_P1.data)
 
-        input_BP1 = util.draw_pose_from_map(self.input_BP1[:, :nbj].data)[0]
-        input_BP2 = util.draw_pose_from_map(self.input_BP2[:, :nbj].data)[0]
+        inputs_BP1 = util.draw_poses_from_maps(self.input_BP1[:, :nbj].data)
+        inputs_BP2 = util.draw_poses_from_maps(self.input_BP2[:, :nbj].data)
 
-        imgs = [input_P1, input_BP1, input_P2, input_BP2, fake_P2, fake_P1]
-        vis = np.zeros((height, width * len(imgs), 3)).astype(np.uint8)  # h, w, c
-        for i, img in enumerate(imgs):
-            vis[:, width * i:width * (i + 1), :] = img
+        imgs = [[inputs_P1[i], inputs_BP1[i][0], inputs_P2[i], inputs_BP2[i][0], fakes_P2[i], fakes_P1[i]] for i in range(self.opt.batchSize)]
+        viss = [np.zeros((height, width * len(imgs[0]), 3)).astype(np.uint8) for _ in inputs_P1]  # h, w, c
+        for j, vis in enumerate(viss):
+            for i, img in enumerate(imgs[j]):
+                vis[:, width * i:width * (i + 1), :] = img
 
-        ret_visuals = OrderedDict([('vis', vis)])
+        ret_visuals = [OrderedDict([('vis', vis)]) for vis in viss]
 
         return ret_visuals
 

@@ -22,6 +22,11 @@ def tensor2im(image_tensor, imtype=np.uint8, index=0):
     return image_numpy.astype(imtype)
 
 
+def tensors2ims(image_tensor, imtype=np.uint8):
+    imgs = [tensor2im(image_tensor, imtype=imtype, index=i) for i in range(len(image_tensor))]
+    return imgs
+
+
 # draw pose img
 LIMB_SEQ = [[1, 2], [1, 5], [2, 3], [3, 4], [5, 6], [6, 7], [1, 8], [8, 9],
             [9, 10], [1, 11], [11, 12], [12, 13], [1, 0], [0, 14], [14, 16],
@@ -66,6 +71,11 @@ def draw_pose_from_map(pose_map, threshold=0.1, index=0, **kwargs):
 
     cords = map_to_cord(pose_map, threshold=threshold)
     return draw_pose_from_cords(cords, pose_map.shape[:2], **kwargs)
+
+
+def draw_poses_from_maps(pose_maps, threshold=0.1, **kwargs):
+    maps = [draw_pose_from_map(pose_maps, threshold=threshold, index=i, **kwargs) for i in range(len(pose_maps))]
+    return maps
 
 
 def draw_pose_from_map_wider(pose_map, threshold=0.1, ratio=0.225, **kwargs):
