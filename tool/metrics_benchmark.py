@@ -6,8 +6,10 @@ import glob
 import skimage
 import numpy as np
 import pandas as pd
+from PIL import Image
 
 from evaluate_IS import get_inception_score
+from evaluate_FID import get_fid
 
 from calPCKH_market import get_head_wh, valid_points, how_many_right_seq
 
@@ -38,6 +40,8 @@ def load_generated_images(images_folder, len_img, idx_fake):
         to = img_name[1]
 
         names.append([fr, to])
+
+    Image.fromarray(generated_images[0]).save(os.path.join(images_folder, '../sample_output.png'))
 
     return (np.stack(input_images, axis=0), np.stack(target_images, axis=0),
             np.stack(generated_images, axis=0), names)
@@ -84,13 +88,18 @@ def get_metrics(results_dir, len_img, idx_fake):
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
     print(f'{len(input_images)} images loaded\n')
 
-    print('Input images:')
+
+    print('Input images...')
     IS_input = get_inception_score(input_images)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
 
-    print('Input generated:')
+    print('Input generated....')
     IS_output = get_inception_score(generated_images)
     print(f"IS output: {IS_output[0]}, std: {IS_output[1]}")
+
+    print('FID...')
+    FID = get_fid(input_images, generated_images)
+    print("FID: ", FID)
 
     PCKs = get_pckh(results_dir)
     print(f'PCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
