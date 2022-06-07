@@ -16,7 +16,6 @@ from calPCKH_market import get_head_wh, valid_points, how_many_right_seq
 
 def load_generated_images(images_folder, len_img, idx_fake):
     input_images = []
-    target_images = []
     generated_images = []
 
     names = []
@@ -27,9 +26,8 @@ def load_generated_images(images_folder, len_img, idx_fake):
 
         imgs = [img[:, i * w: (i + 1) * w] for i in range(len_img)]
 
-        input_images.append(imgs[0])
-        target_images.append(imgs[2])
-        generated_images.append(imgs[idx_fake])
+        input_images += [imgs[0], imgs[3]]
+        generated_images += [imgs[idx_fake], imgs[idx_fake + 1]]
 
         assert img_name.endswith('_vis.png') or img_name.endswith(
             '_vis.jpg'), 'unexpected img name: should end with _vis.png'
@@ -43,8 +41,7 @@ def load_generated_images(images_folder, len_img, idx_fake):
 
     Image.fromarray(generated_images[0]).save(os.path.join(images_folder, '../sample_output.png'))
 
-    return (np.stack(input_images, axis=0), np.stack(target_images, axis=0),
-            np.stack(generated_images, axis=0), names)
+    return (np.stack(input_images, axis=0), np.stack(generated_images, axis=0), names)
 
 
 def get_pckh(results_dir):
@@ -84,7 +81,7 @@ def get_pckh(results_dir):
 
 def get_metrics(results_dir, len_img, idx_fake):
     print('Loading images from ', results_dir)
-    input_images, target_images, generated_images, names = \
+    input_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
     print(f'{len(input_images)} images loaded\n')
 
@@ -118,7 +115,7 @@ def get_last_dir(dpath):
 
 
 def get_args():
-    len_img = 5
+    len_img = 6
     idx_fake = 4
 
     results_dir = './results/market_APS'

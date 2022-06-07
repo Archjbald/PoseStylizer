@@ -96,7 +96,7 @@ class TransferModel(BaseModel):
         self.input_P2, self.input_BP2 = input['P2'], input['BP2'][:, :nbj]
         if self.opt.dataset_mode in ['keypoint_segmentation']:
             self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
-        self.image_paths = input['P1_path'][0] + '___' + input['P2_path'][0]
+        self.image_paths = [input['P1_path'][i] + '___' + input['P2_path'][i] for i in range(len(input['P1_path']))]
 
         if len(self.gpu_ids) > 0:
             self.input_P1 = self.input_P1.cuda()
@@ -251,6 +251,28 @@ class TransferModel(BaseModel):
         vis[:, width * 4:, :] = fake_P2
 
         ret_visuals = OrderedDict([('vis', vis)])
+
+        return ret_visuals
+
+    def get_current_visuals_test(self):
+        nbj = self.opt.BP_input_nc
+        height, width = self.input_P1.size(2), self.input_P1.size(3)
+        inputs_P1 = util.tensors2ims(self.input_P1.data)
+        inputs_P2 = util.tensors2ims(self.input_P2.data)
+        fakes_P2 = util.tensors2ims(self.fake_P2.data)
+        fakes_P1 = util.tensors2ims(self.fake_P1.data)
+
+        inputs_BP1 = util.draw_poses_from_maps(self.input_BP1[:, :nbj].data)
+        inputs_BP2 = util.draw_poses_from_maps(self.input_BP2[:, :nbj].data)
+
+        imgs = [[inputs_P1[i], inputs_BP1[i][0], inputs_P2[i], inputs_BP2[i][0], fakes_P2[i], fakes_P1[i]] for i in
+                range(self.opt.batchSize)]
+        viss = [np.zeros((height, width * len(imgs[0]), 3)).astype(np.uint8) for _ in inputs_P1]  # h, w, c
+        for j, vis in enumerate(viss):
+            for i, img in enumerate(imgs[j]):
+                vis[:, width * i:width * (i + 1), :] = img
+
+        ret_visuals = [OrderedDict([('vis', vis)]) for vis in viss]
 
         return ret_visuals
 
