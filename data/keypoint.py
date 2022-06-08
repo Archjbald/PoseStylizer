@@ -30,7 +30,7 @@ class KeyDataset(BaseDataset):
             pair = [pairs_file_train.iloc[i]['from'], pairs_file_train.iloc[i]['to']]
             self.pairs.append(pair)
 
-        print('Loading data pairs finished ...')
+        print(f"Loaded {len(self.pairs)} pairs")
 
     def __getitem__(self, index):
         # self.opt.random = True

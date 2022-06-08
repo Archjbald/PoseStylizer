@@ -35,7 +35,6 @@ class PoseResNet(PoseNet):
         self.gen_final = self.gen_final_train or not self.gen_final
 
     def get_feature_extractor(self, perceptual_layers, gpu_ids):
-        perceptual_layers = 4
         submodel = nn.Sequential(
 
         )
