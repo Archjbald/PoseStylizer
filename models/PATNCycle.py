@@ -4,6 +4,7 @@ from .PoseCycleNet import TransferCycleModel
 from .hpe.simple_bl import get_pose_net
 from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss, PerceptualLoss
 from losses.color_loss import ColorLossScale
+from util.image_pool import ImagePoolPast
 
 
 class PATNCycle(TransferCycleModel):
@@ -20,6 +21,9 @@ class PATNCycle(TransferCycleModel):
         opt.which_model_netG = "PATN"
         opt.norm = 'switchable'
 
+        if opt.pool_size:
+            opt.pool_size = opt.batchSize
+
         TransferCycleModel.initialize(self, opt)
 
         self.model_names.append('netHPE')
@@ -27,12 +31,14 @@ class PATNCycle(TransferCycleModel):
         self.netHPE = get_pose_net(gen_final=self.gen_final_hpe)
 
         if self.isTrain:
+            self.percep_model = self.netHPE.get_feature_extractor(opt.perceptual_layers, self.gpu_ids)
             self.criterion_cycle = L1_plus_perceptualLoss(1., 0.5, opt.perceptual_layers, self.gpu_ids,
                                                           percep_is_l1=True,
-                                                          submodel=self.netHPE)
+                                                          submodel=self.percep_model)
             self.criterion_idt = self.criterion_cycle
             self.lambda_HPE = opt.lambda_HPE
             self.criterion_HPE = torch.nn.MSELoss()
+
             self.lambda_L2 = opt.lambda_A
             if self.lambda_L2:
                 if opt.use_color_loss:
@@ -40,9 +46,43 @@ class PATNCycle(TransferCycleModel):
                 else:
                     self.criterion_L2 = PerceptualLoss(1, opt.perceptual_layers, self.gpu_ids)
 
-    def evaluate_HPE(self, fake, real):
-        annotated = real.view(*real.shape[:-2], -1).max(dim=-1)[0] > 0
-        loss = self.criterion_HPE(fake * annotated[:, :, None, None], real) * self.lambda_HPE
+            self.fake_PB_pool = ImagePoolPast(opt.pool_size)
+
+    def forward(self):
+        """Run forward pass; called by both functions <optimize_parameters> and <test>."""
+        self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
+        self.rec_P1 = self.netG([self.fake_P2, self.input_BP2, self.input_BP1])  # G_B(G_A(A))
+
+        self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
+        self.rec_P2 = self.netG([self.fake_P1, self.input_BP1, self.input_BP2])  # G_A(G_B(B))
+
+        if not self.isTrain or self.lambda_identity:
+            self.idt_P1 = self.netG([self.input_P1, self.input_BP1, self.input_BP1])
+            self.idt_P2 = self.netG([self.input_P2, self.input_BP2, self.input_BP2])
+
+        self.fake_BP1, self.fake_BP1_feats = self.netHPE(self.fake_P1)
+        self.fake_BP2, self.fake_BP2_feats = self.netHPE(self.fake_P2)
+
+    def test(self):
+        with torch.no_grad():
+            self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
+            if self.use_mask:
+                self.fake_P2 *= self.get_mask(self.input_BP2)
+
+            self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
+            if self.use_mask:
+                self.fake_P1 *= self.get_mask(self.input_BP1)
+
+            self.fake_BP1 = self.netHPE(self.fake_P1)[0]
+            self.fake_BP2 = self.netHPE(self.fake_P2)[0]
+            self.real_BP1 = self.netHPE(self.input_P1)[0]
+            self.real_BP2 = self.netHPE(self.input_P2)[0]
+
+    def evaluate_HPE(self, feats_out, feats_in):
+        loss = 0
+        for i in range(len(feats_in)):
+            loss += self.criterion_HPE(feats_in[i], feats_out[i])
+
         return loss
 
     def backward_G(self, backward=True):
@@ -72,12 +112,10 @@ class PATNCycle(TransferCycleModel):
         # HPE Loss
         self.loss_HPE = 0.
         if self.lambda_HPE:
-            self.real_BP1 = self.netHPE(self.input_P1)
-            self.real_BP2 = self.netHPE(self.input_P2)
-            # self.loss_HPE += self.evaluate_HPE(self.fake_BP1, self.real_BP1)
-            # self.loss_HPE += self.evaluate_HPE(self.fake_BP2, self.real_BP2)
-            self.loss_HPE += self.criterion_HPE(self.fake_BP1, self.real_BP1) * self.lambda_HPE
-            self.loss_HPE += self.criterion_HPE(self.fake_BP2, self.real_BP2) * self.lambda_HPE
+            self.real_BP1, self.real_BP1_feats = self.netHPE(self.input_P1)
+            self.real_BP2, self.real_BP2_feats = self.netHPE(self.input_P2)
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP1_feats, self.real_BP1_feats) * self.lambda_HPE
+            self.loss_HPE += self.evaluate_HPE(self.fake_BP2_feats, self.real_BP2_feats) * self.lambda_HPE
 
         self.loss_cycle = 0.
         # Forward cycle loss || G_B(G_A(A)) - A||

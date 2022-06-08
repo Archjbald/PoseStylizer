@@ -70,7 +70,6 @@ class UCCPT(TransferCycleModel):
             self.real_BP1 = self.netHPE(self.input_P1)[0]
             self.real_BP2 = self.netHPE(self.input_P2)[0]
 
-
     def evaluate_HPE(self, feats_out, feats_in):
         loss = 0
         for i in range(len(feats_in)):

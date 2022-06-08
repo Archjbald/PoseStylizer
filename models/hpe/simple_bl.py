@@ -34,6 +34,18 @@ class PoseResNet(PoseNet):
     def switch_gen(self):
         self.gen_final = self.gen_final_train or not self.gen_final
 
+    def get_feature_extractor(self, perceptual_layers, gpu_ids):
+        perceptual_layers = 4
+        submodel = nn.Sequential(
+
+        )
+        for i, (name, layer) in enumerate(self.resnet.named_children()):
+            submodel.add_module(name, layer)
+            if i == perceptual_layers:
+                break
+        submodel = torch.nn.DataParallel(submodel, device_ids=gpu_ids).cuda()
+        return submodel
+
     def forward(self, x):
         # x = torch.cat([x, x], dim=0)
         feat = self.resnet(x)
@@ -42,7 +54,7 @@ class PoseResNet(PoseNet):
         if self.gen_final:
             out = self.generate_final_bps(out, x)
 
-        return out
+        return out, [out,]
 
     def freeze_encoder(self, freeze=True):
         self.resnet.freeze(freeze=freeze)
