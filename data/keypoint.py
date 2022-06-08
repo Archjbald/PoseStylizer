@@ -60,7 +60,7 @@ class KeyDataset(BaseDataset):
         BP1_img = np.load(BP1_path)  # h, w, c
         BP2_img = np.load(BP2_path)
 
-        THRESHOLD = 7000.  # ~ 880 * 8
+        THRESHOLD = 8 * 0.013 * BP1_img.shape[0] ** 2  # ~ 880 * 8
         if self.opt.phase == 'train' or self.opt.random:
             if BP1_img.sum() < THRESHOLD or BP2_img.sum() < THRESHOLD:
                 # get a new img
