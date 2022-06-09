@@ -50,10 +50,9 @@ class PoseResNet(PoseNet):
         feat = self.resnet(x)
         out = self.final_stage(feat)
 
-        if self.gen_final:
-            out = self.generate_final_bps(out, x)
+        bps = self.generate_final_bps(out, x)
 
-        return out, [out,]
+        return bps, [out, ]
 
     def freeze_encoder(self, freeze=True):
         self.resnet.freeze(freeze=freeze)

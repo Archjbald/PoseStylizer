@@ -1,7 +1,7 @@
 import torch
 
 from .PoseCycleNet import TransferCycleModel
-from .hpe.simple_bl import get_pose_net
+from .hpe.openpose import get_pose_net
 from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss, PerceptualLoss
 from losses.color_loss import ColorLossScale
 from util.image_pool import ImagePoolPast
