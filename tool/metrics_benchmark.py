@@ -26,8 +26,8 @@ def load_generated_images(images_folder, len_img, idx_fake):
 
         imgs = [img[:, i * w: (i + 1) * w] for i in range(len_img)]
 
-        input_images += [imgs[0], imgs[3]]
-        generated_images += [imgs[idx_fake], imgs[idx_fake + 1]]
+        input_images += [imgs[0]]
+        generated_images += [imgs[idx_fake]]
 
         assert img_name.endswith('_vis.png') or img_name.endswith(
             '_vis.jpg'), 'unexpected img name: should end with _vis.png'
@@ -84,7 +84,6 @@ def get_metrics(results_dir, len_img, idx_fake):
     input_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
     print(f'{len(input_images)} images loaded\n')
-
 
     print('Input images...')
     IS_input = get_inception_score(input_images)
