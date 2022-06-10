@@ -97,7 +97,7 @@ def set_test_opt(opt, max_dataset_size=None):
     opt.no_flip = True  # no flip
     opt.phase = 'test'
     opt.isTrain = False
-    opt.pairLst = opt.pairLst.replace('train', 'test')
+    opt.pairLst = os.path.join(os.path.split(opt.pairLst)[0], os.path.split(opt.pairLst)[1].replace('train', 'test'))
     opt.random = False
     if max_dataset_size:
         opt.max_dataset_size = max_dataset_size
