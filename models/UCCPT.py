@@ -19,7 +19,6 @@ class UCCPT(TransferCycleModel):
         opt.use_mask = False
 
         opt.which_model_netG = "PATN"
-        opt.norm = 'switchable'
 
         if opt.pool_size:
             opt.pool_size = opt.batchSize
