@@ -2,6 +2,8 @@ import os
 import sys
 import json
 import glob
+import time
+import torch
 
 import skimage
 import numpy as np
@@ -14,30 +16,64 @@ from evaluate_FID import get_fid
 from calPCKH_market import get_head_wh, valid_points, how_many_right_seq
 
 
-def load_generated_images(images_folder, len_img, idx_fake):
+def get_len_img(img):
+    if img.ndim > 2:
+        img = img.max(axis=img.shape.index(3))
+    rows = img.mean(axis=0) > 80
+    buff = 0
+    state = rows[0]
+    count = [0]
+    for r in rows:
+        if r == state:
+            count[-1] += 1 + buff
+            buff = 0
+            continue
+        buff += 1
+        if buff > 10:
+            state = r
+            count.append(buff)
+            buff = 0
+
+    count.sort()
+    width = img.shape[1]
+    for c in count[-2:0:-1]:
+        if not width % c:
+            return width // c
+
+    return None
+
+
+def load_generated_images(images_folder, idx_fake):
     input_images = []
     generated_images = []
 
+    len_img = None
+
     names = []
     img_list = os.listdir(images_folder)
-    for img_name in img_list:
+    for k, img_name in enumerate(img_list):
+
         img = skimage.io.imread(os.path.join(images_folder, img_name))
+        if not k:
+            len_img = get_len_img(img)
         w = int(img.shape[1] / len_img)  # h, w ,c
 
         imgs = [img[:, i * w: (i + 1) * w] for i in range(len_img)]
-
-        input_images += [imgs[0]]
-        generated_images += [imgs[idx_fake]]
 
         assert img_name.endswith('_vis.png') or img_name.endswith(
             '_vis.jpg'), 'unexpected img name: should end with _vis.png'
         img_name = img_name[:-8]
         img_name = img_name.split('___')
         assert len(img_name) == 2, 'unexpected img split: length 2 expect!'
-        fr = img_name[0]
-        to = img_name[1]
 
-        names.append([fr, to])
+        for s in (0, 1):
+            name = img_name[s]
+            if name in names:
+                continue
+            names.append(name)
+            input_images.append(imgs[2 * s])
+
+        generated_images += [imgs[idx_fake]]
 
     Image.fromarray(generated_images[0]).save(os.path.join(images_folder, '../sample_output.png'))
 
@@ -84,6 +120,8 @@ def get_metrics(results_dir, len_img, idx_fake):
     input_images, generated_images, names = \
         load_generated_images(os.path.join(results_dir, 'images'), len_img, idx_fake)
     print(f'{len(input_images)} images loaded\n')
+
+    # get_detection_score(input_images)
 
     print('Input images...')
     IS_input = get_inception_score(input_images)
