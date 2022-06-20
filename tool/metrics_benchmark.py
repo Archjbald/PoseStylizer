@@ -2,8 +2,6 @@ import os
 import sys
 import json
 import glob
-import time
-import torch
 
 import skimage
 import numpy as np
