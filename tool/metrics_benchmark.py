@@ -53,7 +53,14 @@ def load_generated_images(images_folder, idx_fake):
 
         img = skimage.io.imread(os.path.join(images_folder, img_name))
         if not k:
-            len_img = get_len_img(img)
+            if 'fashion' in images_folder:
+                ratio = 1.45
+            elif 'market' in images_folder:
+                ratio = 2.
+
+            len_img = round(img.shape[1] / (img.shape[0] / ratio))
+            print('Len_img set to: ', len_img)
+
         w = int(img.shape[1] / len_img)  # h, w ,c
 
         imgs = [img[:, i * w: (i + 1) * w] for i in range(len_img)]
@@ -116,7 +123,7 @@ def get_pckh(results_dir):
 def get_metrics(results_dir, len_img, idx_fake):
     print('Loading images from ', results_dir)
     input_images, generated_images, names = \
-        load_generated_images(os.path.join(results_dir, 'images'), len_img)
+        load_generated_images(os.path.join(results_dir, 'images'), idx_fake)
     print(f'{len(input_images)} images loaded\n')
 
     # get_detection_score(input_images)
