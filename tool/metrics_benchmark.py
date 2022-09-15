@@ -128,8 +128,11 @@ def get_metrics(results_dir, len_img, idx_fake):
 
     # get_detection_score(input_images)
 
+    source_images = input_images[0::2]
+    target_images = input_images[1::2]
+
     print('Input images...')
-    IS_input = get_inception_score(input_images)
+    IS_input = get_inception_score(source_images)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
 
     print('Input generated....')
@@ -137,7 +140,7 @@ def get_metrics(results_dir, len_img, idx_fake):
     print(f"IS output: {IS_output[0]}, std: {IS_output[1]}")
 
     print('FID...')
-    FID = get_fid(input_images, generated_images)
+    FID = get_fid(source_images, generated_images)
     print("FID: ", FID)
 
     PCKs = get_pckh(results_dir)

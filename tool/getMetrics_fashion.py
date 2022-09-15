@@ -1,6 +1,6 @@
 import os
 import sys
-from inception_score import get_inception_score
+from inception_score_v1 import get_inception_score
 
 from skimage.io import imread, imsave
 from skimage.metrics import structural_similarity
@@ -52,12 +52,31 @@ def create_masked_image(names, images, annotation_file):
 
 
 def addBounding(image, bound=40):
+    # return image
     h, w, c = image.shape
     image_bound = np.ones((h, w + bound * 2, c)) * 255
     image_bound = image_bound.astype(np.uint8)
     image_bound[:, bound:bound + w] = image
 
     return image_bound
+
+
+def load_images_dir(images_folder):
+    images = []
+
+    names = []
+    img_list = os.listdir(images_folder)
+    for img_name in img_list:
+        img = imread(os.path.join(images_folder, img_name))
+
+        images.append(addBounding(img))
+
+        assert img_name.endswith('.png') or img_name.endswith('.jpg'), 'unexpected img name'
+        img_name = img_name[:-4]
+
+        names.append([img_name,])
+
+    return images, names
 
 
 def load_generated_images(images_folder):
@@ -94,8 +113,8 @@ def test(generated_images_dir, annotations_file_test):
     # load images
     msg = ""
     print("Loading images...")
-    input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
-
+    # input_images, target_images, generated_images, names = load_generated_images(generated_images_dir)
+    test_images, names = load_images_dir('./dataset/market_data/test')
 
     if False:
         print("Compute structured similarity score (SSIM)...")
@@ -111,13 +130,14 @@ def test(generated_images_dir, annotations_file_test):
         msg += line
 
     print("Compute inception score...")
-    inception_score = get_inception_score(generated_images)
+    inception_score = get_inception_score(test_images)
     line = f"\nInception score {inception_score}"
     print(line)
     msg += line
     # print("Inception score ", inception_score, " SSIM score ", structured_score, " L1 score ", norm_score)
 
     return msg
+
 
 if __name__ == "__main__":
     # fix these paths
@@ -136,6 +156,7 @@ if __name__ == "__main__":
     if len(args) > 2:
         IDX_FAKE = int(args[2])
 
-    msg = test(generated_images_dir, annotations_file_test)
-    with open(generated_images_dir.replace("images", "eval_results.log"), "w") as f:
-        f.write(msg)
+    test(generated_images_dir, annotations_file_test)
+    # msg = test(generated_images_dir, annotations_file_test)
+    # with open(generated_images_dir.replace("images", "eval_results.log"), "w") as f:
+    #     f.write(msg)

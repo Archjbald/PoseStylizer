@@ -11,6 +11,8 @@ import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 
+tf.compat.v1.disable_v2_behavior()
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import glob
 import scipy.misc

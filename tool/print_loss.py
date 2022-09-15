@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-weights = {
+WEIGHTS = {
     'pair_L1loss': 1,
     'D_PP': 1,
     'D_PB': 1,
@@ -23,9 +23,10 @@ colors = {
     'loss_NCE_both': 'tab:red',
     'loss_NCE_Y': 'tab:pink',
 }
+colors = {}
 
 
-def print_loss(log_path, mode='train'):
+def print_loss(log_path, mode='train', weights={}):
     with open(log_path) as f_log:
         loss_logs = f_log.read().split('\n')
 
@@ -59,13 +60,22 @@ def print_loss(log_path, mode='train'):
         losses[epoch] = [sum([it[l] for it in losses[epoch]]) / len(losses[epoch]) for l in range(len(lbls))]
 
     fig, ax = plt.subplots()
-    for i, lbl in enumerate(lbls):
+
+    losses = {lbl: [losses[e][i] for e in epochs] for i, lbl in enumerate(lbls)}
+    ban_list = ['D_BP', 'IS', 'IS std']
+    len_lbl = len([lbl for lbl in lbls if lbl not in ban_list])
+    losses['total'] = [sum([v[e] for k, v in losses.items() if k not in ban_list]) / len_lbl for e in range(len(epochs))]
+    lbls.append('total')
+
+    for lbl in lbls:
         # if lbl in ['pair_L1loss', 'origin_L1', 'perceptual']:
         # if lbl in ['pair_L1loss', 'D_PP', 'D_PB', 'pair_GANloss']:
-        if lbl in ['loss_NCE_both']:
+        if lbl in ['loss_NCE_both', 'D', 'D_PP', 'D_PB', 'adv'] and False:
+            # if 'IS' not in lbl:
             continue
 
-        ax.plot(epochs, [losses[e][i] * weights.setdefault(lbl, 1) for e in epochs], label=lbl,
+        w = weights.setdefault(lbl, 1)
+        ax.plot(epochs, losses[lbl], label=f"{lbl} ({w})",
                 color=colors.setdefault(lbl, None))
 
     ax.legend()
@@ -74,5 +84,29 @@ def print_loss(log_path, mode='train'):
     return
 
 
-LOG_PATH = 'logs/fashion_cut_shuf_2/fashion_cut_shuf/loss_log.txt'
-print_loss(LOG_PATH, mode='train')
+def get_weights(options):
+    options = options.split('\n')
+    options = {l.split(': ')[0]: l.split(': ')[1] for l in options if l}
+    equiv = {
+        'identity': 'idt',
+        'adversarial': 'adv',
+    }
+    lambdas = {}
+    for opt, val in options.items():
+        if opt[:7] == 'lambda_':
+            key = opt[7:]
+            key = equiv[key] if key in equiv else key
+            lambdas[key] = float(val)
+
+    return lambdas
+
+
+FOLD = r"C:\Users\Romain Guesdon\Desktop\fashion_UCCPT_adam"
+LOG_PATH = f"{FOLD}/loss_log.txt"
+OPT_PATH = f"{FOLD}/options.txt"
+with open(OPT_PATH) as f:
+    options = f.read()
+    weights = get_weights(options)
+
+print_loss(LOG_PATH, mode='train', weights=weights)
+print(weights)

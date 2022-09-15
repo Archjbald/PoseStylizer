@@ -3,23 +3,9 @@ import pandas as pd
 import json
 import os
 
+from generate_dataset_utils import cords_to_map, load_pose_cords_from_strings
+
 MISSING_VALUE = -1
-
-
-def load_pose_cords_from_strings(y_str, x_str):
-    y_cords = json.loads(y_str)
-    x_cords = json.loads(x_str)
-    return np.concatenate([np.expand_dims(y_cords, -1), np.expand_dims(x_cords, -1)], axis=1)
-
-
-def cords_to_map(cords, img_size, sigma=6):
-    result = np.zeros(img_size + cords.shape[0:1], dtype='float32')
-    for i, point in enumerate(cords):
-        if point[0] == MISSING_VALUE or point[1] == MISSING_VALUE:
-            continue
-        xx, yy = np.meshgrid(np.arange(img_size[1]), np.arange(img_size[0]))
-        result[..., i] = np.exp(-((yy - point[0]) ** 2 + (xx - point[1]) ** 2) / (2 * sigma ** 2))
-    return result
 
 
 def compute_pose(image_dir, annotations_file, savePath):

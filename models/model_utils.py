@@ -334,6 +334,6 @@ class SwitchNorm2d(nn.Module):
             mean = mean_weight[0] * mean_in + mean_weight[1] * mean_ln
             var = var_weight[0] * var_in + var_weight[1] * var_ln
 
-        x = (x-mean) / (var+self.eps).sqrt()
+        x = (x - mean) / (var + self.eps).sqrt()
         x = x.view(N, C, H, W)
         return x * self.weight + self.bias

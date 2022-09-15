@@ -82,6 +82,16 @@ class TransferCycleModel(BaseModel):
             self.criterion_cycle = torch.nn.L1Loss()
             self.criterion_idt = torch.nn.L1Loss()
 
+            if opt.optimizer == 'adam':
+                optimizer = torch.optim.Adam
+            elif opt.optimizer == 'sam':
+                from util.opti import SAM
+                optimizer = SAM
+            elif opt.optimizer == 'sgd':
+                optimizer = torch.optim.SGD
+            else:
+                optimizer = None
+
             if opt.L1_type == 'l1_plus_perL1':
                 self.criterion_cycle = PerceptualLoss(1., opt.perceptual_layers, self.gpu_ids)
             else:
@@ -97,19 +107,19 @@ class TransferCycleModel(BaseModel):
                 self.criterion_patch = ColorLoss(opt)
 
             # initialize optimizers
-            self.optimizer_G = torch.optim.Adam(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
+            self.optimizer_G = optimizer(self.netG.parameters(), lr=opt.lr, betas=(opt.beta1, 0.999))
             if opt.with_D_simple:
                 self.fake_pool = ImagePool(opt.pool_size)
-                self.optimizer_D = torch.optim.Adam(self.netD.parameters(), lr=opt.lr_D,
-                                                    betas=(opt.beta1, opt.beta2))
+                self.optimizer_D = optimizer(self.netD.parameters(), lr=opt.lr_D,
+                                             betas=(opt.beta1, opt.beta2))
             if opt.with_D_PB:
                 self.fake_PB_pool = ImagePool(opt.pool_size)
-                self.optimizer_D_PB = torch.optim.Adam(self.netD_PB.parameters(), lr=opt.lr_D,
-                                                       betas=(opt.beta1, opt.beta2))
+                self.optimizer_D_PB = optimizer(self.netD_PB.parameters(), lr=opt.lr_D,
+                                                betas=(opt.beta1, opt.beta2))
             if opt.with_D_PP:
                 self.fake_PP_pool = ImagePool(opt.pool_size)
-                self.optimizer_D_PP = torch.optim.Adam(self.netD_PP.parameters(), lr=opt.lr_D,
-                                                       betas=(opt.beta1, opt.beta2))
+                self.optimizer_D_PP = optimizer(self.netD_PP.parameters(), lr=opt.lr_D,
+                                                betas=(opt.beta1, opt.beta2))
 
             self.optimizers = []
             self.schedulers = []
@@ -120,8 +130,8 @@ class TransferCycleModel(BaseModel):
                 self.optimizers.append(self.optimizer_D_PB)
             if opt.with_D_PP:
                 self.optimizers.append(self.optimizer_D_PP)
-            for optimizer in self.optimizers:
-                self.schedulers.append(networks.get_scheduler(optimizer, opt))
+            for opti in self.optimizers:
+                self.schedulers.append(networks.get_scheduler(opti, opt))
 
         print('---------- Networks initialized -------------')
 
@@ -356,7 +366,8 @@ class TransferCycleModel(BaseModel):
         inputs_BP1 = util.draw_poses_from_maps(self.input_BP1[:, :nbj].data)
         inputs_BP2 = util.draw_poses_from_maps(self.input_BP2[:, :nbj].data)
 
-        imgs = [[inputs_P1[i], inputs_BP1[i][0], inputs_P2[i], inputs_BP2[i][0], fakes_P2[i], fakes_P1[i]] for i in range(self.opt.batchSize)]
+        imgs = [[inputs_P1[i], inputs_BP1[i][0], inputs_P2[i], inputs_BP2[i][0], fakes_P2[i], fakes_P1[i]] for i in
+                range(self.opt.batchSize)]
         viss = [np.zeros((height, width * len(imgs[0]), 3)).astype(np.uint8) for _ in inputs_P1]  # h, w, c
         for j, vis in enumerate(viss):
             for i, img in enumerate(imgs[j]):

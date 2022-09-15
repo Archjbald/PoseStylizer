@@ -141,11 +141,11 @@ def train(opt, model, train_dataset, val_dataset):
                     model.optimize_parameters(backward=False)
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
-                fakes.append(model.fake_P1.clone().cpu())
+                fakes.append(model.fake_P2.clone().cpu())
                 if v < 5:
                     visualizer.display_current_results(model.get_current_visuals(), epoch, save_result=True,
                                                        lbls=["val", str(v)])
-            current_IS = get_inception_score(torch.cat(fakes))
+            current_IS = get_inception_score(torch.cat(fakes).float())
             val_errors["IS_val"] = current_IS[0]
             val_errors["IS_std"] = current_IS[1]
             visualizer.print_current_errors(epoch, epoch_iter, val_errors, t, val=True)

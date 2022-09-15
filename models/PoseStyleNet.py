@@ -124,6 +124,53 @@ class TransferModel(BaseModel):
             self.real_BP1 = self.netHPE(self.input_P1)[0]
             self.real_BP2 = self.netHPE(self.input_P2)[0]
 
+    def test_D(self):
+        if not hasattr(self, 'netD_PB'):
+            opt = self.opt
+            if opt.with_D_PB:
+                self.netD_PB = networks.define_D(opt.P_input_nc + opt.BP_input_nc, opt.ndf,
+                                                 'resnet',
+                                                 opt.n_layers_D, opt.norm, True, opt.init_type, self.gpu_ids,
+                                                 use_dropout=True, n_downsampling=opt.D_n_downsampling)
+                self.netD_PB.eval()
+                self.model_names.append('netD_PB')
+
+            if opt.with_D_PP:
+                self.netD_PP = networks.define_D(opt.P_input_nc + opt.P_input_nc, opt.ndf,
+                                                 opt.which_model_netD,
+                                                 opt.n_layers_D, opt.norm, True, opt.init_type, self.gpu_ids,
+                                                 use_dropout=True, n_downsampling=opt.D_n_downsampling)
+                self.netD_PP.eval()
+                self.model_names.append('netD_PP')
+
+            which_epoch = opt.which_epoch
+            if opt.with_D_PB:
+                self.load_network(self.netD_PB, 'netD_PB', which_epoch)
+            if opt.with_D_PP:
+                self.load_network(self.netD_PP, 'netD_PP', which_epoch)
+
+        D_score_fake = 0.
+        D_score_real = 0.
+        with torch.no_grad():
+            if self.opt.with_D_PB:
+                pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
+                pred_real_PB = self.netD_PB(torch.cat((self.input_P2, self.input_BP2), 1))
+                D_score_fake += pred_fake_PB.mean()
+                D_score_real += pred_real_PB.mean()
+
+            if self.opt.with_D_PP:
+                pred_fake_PB = self.netD_PP(torch.cat((self.fake_P2, self.input_P1), 1))
+                pred_real_PB = self.netD_PP(torch.cat((self.input_P2, self.input_P1), 1))
+                D_score_fake += pred_fake_PB.mean()
+                D_score_real += pred_real_PB.mean()
+
+        factor = int(self.opt.with_D_PB) + int(self.opt.with_D_PP)
+        D_score_fake /= factor if factor else 1
+        D_score_real /= factor if factor else 1
+
+        return D_score_fake, D_score_real
+
+
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
             pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))
