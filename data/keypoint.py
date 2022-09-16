@@ -102,6 +102,8 @@ class KeyDataset(BaseDataset):
         P1 = self.transform(P1_img)
         P2 = self.transform(P2_img)
 
+        print(P1.shape, BP1.shape)
+
         if not P1.shape[-2:] == BP1.shape[-2:]:
             trans = transforms.Resize((P1.shape[-2], P1.shape[-1]))
             with torch.no_grad():

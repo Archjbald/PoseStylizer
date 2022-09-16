@@ -48,6 +48,8 @@ def get_random_trans(size):
         if is_array:
             img = img.transpose((2, 0, 1))
             img = torch.from_numpy(img)
+            if img.dtype == torch.float16:
+                img = img.float()
         img = transforms.functional.affine(
             img,
             angle=rs_params[0],
