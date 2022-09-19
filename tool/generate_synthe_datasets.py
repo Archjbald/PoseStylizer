@@ -62,10 +62,12 @@ def blender_to_csv():
             xs[1] = round((float(annot['clavicle_l_head_x']) + float(annot['clavicle_r_head_x'])) / 2.)
             ys[1] = round((float(annot['clavicle_l_head_y']) + float(annot['clavicle_r_head_y'])) / 2.)
 
-            candidates_img = glob.glob(os.path.join(IMG_DIR, img_root + f'_{i}.png')) + \
-                             glob.glob(os.path.join(IMG_DIR, img_root + f'_{i}_*.png'))
-            assert len(candidates_img) == 1
-            img_path = candidates_img[0]
+            if os.path.isfile(os.path.join(IMG_DIR, img_root + f'_{i}.png')):
+                img_path = os.path.join(IMG_DIR, img_root + f'_{i}.png')
+            elif os.path.isfile(os.path.join(IMG_DIR, img_root + f'_{i}_drive.png')):
+                img_path = os.path.join(IMG_DIR, img_root + f'_{i}_drive.png')
+            else:
+                raise ValueError(f'_{i}.png not found !')
             if img_size is None:
                 with Image.open(img_path) as img:
                     img_size = img.size
@@ -97,7 +99,6 @@ def generate_set(set_name):
 
 def generate_dataset():
     annotations, pairs = blender_to_csv()
-    test_ratio = 0.05
     models_count = {}
     for img in annotations:
         model = img[0].split('_')[0]

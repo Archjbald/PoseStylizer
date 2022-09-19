@@ -1,3 +1,4 @@
+import math
 import os.path
 import torchvision.transforms as transforms
 from data.base_dataset import BaseDataset, get_transform, get_random_trans
@@ -29,6 +30,9 @@ class KeyDataset(BaseDataset):
         for i in range(self.size):
             pair = [pairs_file_train.iloc[i]['from'], pairs_file_train.iloc[i]['to']]
             self.pairs.append(pair)
+
+        if self.opt.phase == 'train' and not self.opt.debug:
+            random.shuffle(self.pairs)
 
         print(f"Loaded {len(self.pairs)} pairs")
 
@@ -102,13 +106,22 @@ class KeyDataset(BaseDataset):
         P1 = self.transform(P1_img)
         P2 = self.transform(P2_img)
 
-        print(P1.shape, BP1.shape)
-
         if not P1.shape[-2:] == BP1.shape[-2:]:
             trans = transforms.Resize((P1.shape[-2], P1.shape[-1]))
             with torch.no_grad():
                 BP1 = trans(BP1)
                 BP2 = trans(BP2)
+
+        height = P1.shape[-2]
+        height_reduced = height / 32.
+        if not height_reduced.is_integer():
+            height_target = 32 * math.ceil(height_reduced)
+            pad_top = (height_target - height) // 2
+            pad_bot = height_target - height - pad_top
+            P1 = torch.nn.functional.pad(input=P1, pad=(0, 0, pad_top, pad_bot))
+            P2 = torch.nn.functional.pad(input=P2, pad=(0, 0, pad_top, pad_bot))
+            BP1 = torch.nn.functional.pad(input=BP1, pad=(0, 0, pad_top, pad_bot))
+            BP2 = torch.nn.functional.pad(input=BP2, pad=(0, 0, pad_top, pad_bot))
 
         return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2,
                 'P1_path': P1_name, 'P2_path': P2_name}

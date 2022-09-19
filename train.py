@@ -135,6 +135,8 @@ def train(opt, model, train_dataset, val_dataset):
         if opt.backward in ['basic'] and epoch % opt.val_epoch_freq == 0:
             val_errors = {}
             fakes = []
+            nb_disp_val = 5
+            disp_step_val = ((len(val_dataset) - nb_disp_val) // (nb_disp_val - 1)) + 1
             for v, val_data in enumerate(val_dataset):
                 with torch.no_grad():
                     model.set_input(val_data)
@@ -142,7 +144,7 @@ def train(opt, model, train_dataset, val_dataset):
                 iter_errors = model.get_current_errors()
                 val_errors = avg_dic(val_errors, iter_errors, v)
                 fakes.append(model.fake_P2.clone().cpu())
-                if v < 5:
+                if not v % disp_step_val and v < nb_disp_val * disp_step_val:
                     visualizer.display_current_results(model.get_current_visuals(), epoch, save_result=True,
                                                        lbls=["val", str(v)])
             current_IS = get_inception_score(torch.cat(fakes).float())
