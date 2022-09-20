@@ -196,12 +196,21 @@ def get_gpu_memory():
     return memory_free_values
 
 
-def debug_gpu_memory(model):
+def debug_gpu_memory(model, epoch, ite, garbage_path='garbage.log'):
     print("Free memory: ", get_gpu_memory())
     attribs = {k: v.nelement() * v.element_size() for k, v in model.__dict__.items() if
                isinstance(v, torch.Tensor)}
 
-    with open('garbage.log', 'a') as f:
+    if not iter:
+        if not epoch:
+            with open(garbage_path, 'w') as f:
+                f.write(''.join(['=' * 10, 'Epoch 0', "=" * 10, '\n']))
+        else:
+            with open(garbage_path, 'a') as f:
+                f.write(''.join(['=' * 10, f'Epoch {epoch}', "=" * 10, '\n']))
+
+    with open(garbage_path, 'a') as f:
+        f.write(''.join(['*' * 10, f'Iter {ite}', "*" * 10, '\n']))
         for obj in gc.get_objects():
             try:
                 if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):

@@ -170,7 +170,6 @@ class TransferModel(BaseModel):
 
         return D_score_fake, D_score_real
 
-
     def backward_G(self, backward=True):
         if self.opt.with_D_PB:
             pred_fake_PB = self.netD_PB(torch.cat((self.fake_P2, self.input_BP2), 1))

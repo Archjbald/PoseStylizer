@@ -113,15 +113,21 @@ class KeyDataset(BaseDataset):
                 BP2 = trans(BP2)
 
         height = P1.shape[-2]
-        height_reduced = height / 32.
-        if not height_reduced.is_integer():
+        width = P1.shape[-1]
+        scale_factor = 2 ** max(1, self.opt.G_n_downsampling, self.opt.D_n_downsampling)
+        height_reduced = height / scale_factor
+        width_reduced = width / scale_factor
+        if not height_reduced.is_integer() or not width_reduced.is_integer():
             height_target = 32 * math.ceil(height_reduced)
+            width_target = 32 * math.ceil(width_reduced)
             pad_top = (height_target - height) // 2
             pad_bot = height_target - height - pad_top
-            P1 = torch.nn.functional.pad(input=P1, pad=(0, 0, pad_top, pad_bot))
-            P2 = torch.nn.functional.pad(input=P2, pad=(0, 0, pad_top, pad_bot))
-            BP1 = torch.nn.functional.pad(input=BP1, pad=(0, 0, pad_top, pad_bot))
-            BP2 = torch.nn.functional.pad(input=BP2, pad=(0, 0, pad_top, pad_bot))
+            pad_left = (width_target - width) // 2
+            pad_right = width_target - width - pad_left
+            P1 = torch.nn.functional.pad(input=P1, pad=(pad_left, pad_right, pad_top, pad_bot))
+            P2 = torch.nn.functional.pad(input=P2, pad=(pad_left, pad_right, pad_top, pad_bot))
+            BP1 = torch.nn.functional.pad(input=BP1, pad=(pad_left, pad_right, pad_top, pad_bot))
+            BP2 = torch.nn.functional.pad(input=BP2, pad=(pad_left, pad_right, pad_top, pad_bot))
 
         return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2,
                 'P1_path': P1_name, 'P2_path': P2_name}

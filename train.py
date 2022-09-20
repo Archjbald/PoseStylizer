@@ -59,18 +59,12 @@ def train(opt, model, train_dataset, val_dataset):
         for scheduler in model.schedulers:
             scheduler.step()
 
-    with open('garbage.log', 'w') as f:
-        f.write(''.join(['=' * 10, 'Epoch 0', "=" * 10, '\n']))
-
     stat_errors = OrderedDict([('count', 0)])
     best_IS = 0
     for epoch in range(epoch_count, opt.niter + opt.niter_decay + 1):
         epoch_start_time = time.time()
         epoch_iter = 0
         for i, data in enumerate(train_dataset):
-            with open('garbage.log', 'a') as f:
-                f.write(''.join(['*' * 10, f'Iter {i}', "*" * 10, '\n']))
-
             if len(opt.gpu_ids) > 0:
                 torch.cuda.synchronize()
             iter_start_time = time.time()
@@ -103,7 +97,7 @@ def train(opt, model, train_dataset, val_dataset):
                 t = time.time() - iter_start_time
                 visualizer.print_current_errors(epoch, epoch_iter, errors, t)
 
-            # debug_gpu_memory(model)
+            # debug_gpu_memory(model, epoch, ite=i)
             # print(get_gpu_memory())
 
         t = time.time() - iter_start_time
