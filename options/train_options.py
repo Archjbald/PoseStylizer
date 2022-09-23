@@ -51,7 +51,8 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lr_decay_iters', type=int, default=100,
                                  help='multiply by a gamma every lr_decay_iters iterations')
 
-        self.parser.add_argument('--L1_type', type=str, default='origin', choices=['origin', 'l1_plus_perL1'],
+        self.parser.add_argument('--L1_type', type=str, default='origin',
+                                 choices=['origin', 'l1_plus_perL1', 'FPart_BSSIM_plus_perL1_L1'],
                                  help='use which kind of L1 loss. (origin|l1_plus_perL1)')
         self.parser.add_argument('--perceptual_layers', type=int, default=3,
                                  help='index of vgg layer for extracting perceptual features.')
@@ -87,7 +88,6 @@ class TrainOptions(BaseOptions):
 
         self.parser.add_argument('--use_mask', action='store_true',
                                  help='mask background')
-
 
         self.isTrain = True
 
