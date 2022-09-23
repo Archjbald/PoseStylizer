@@ -60,6 +60,7 @@ class BaseOptions():
         self.parser.add_argument('--BP_input_nc', type=int, default=18, help='# of input image channels')
         self.parser.add_argument('--padding_type', type=str, default='reflect', help='# of input image channels')
         self.parser.add_argument('--pairLst', type=str, default='', help='market pairs')
+        self.parser.add_argument('--annoLst', type=str, default='market-annotation-train.csv', help='market pairs')
 
         self.parser.add_argument('--with_D_simple', type=int, default=1, help='use simple D')
         self.parser.add_argument('--with_D_PP', type=int, default=1, help='use D to judge P and P is pair or not')

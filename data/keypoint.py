@@ -11,6 +11,8 @@ import numpy as np
 import torch
 import torchvision.transforms as transforms
 
+from data.pose_transform import make_gaussian_limb_masks
+
 
 class KeyDataset(BaseDataset):
     def initialize(self, opt):
@@ -22,7 +24,7 @@ class KeyDataset(BaseDataset):
         self.init_categories(opt.pairLst)
         self.transform = get_transform(opt)
 
-    def init_categories(self, pairLst):
+    def init_categories(self, pairLst, annoLst=None):
         pairs_file_train = pd.read_csv(pairLst)
         self.size = len(pairs_file_train)
         self.pairs = []
@@ -35,6 +37,14 @@ class KeyDataset(BaseDataset):
             random.shuffle(self.pairs)
 
         print(f"Loaded {len(self.pairs)} pairs")
+
+        if annoLst is not None:
+            print('Loading data annos ...')
+            annotations_file = pd.read_csv(annoLst, sep=':')
+            self.annos = annotations_file.set_index('name')
+            print('Loading data annos finished ...')
+        else:
+            self.annos = None
 
     def __getitem__(self, index):
         # self.opt.random = True
@@ -129,7 +139,13 @@ class KeyDataset(BaseDataset):
             BP1 = torch.nn.functional.pad(input=BP1, pad=(pad_left, pad_right, pad_top, pad_bot))
             BP2 = torch.nn.functional.pad(input=BP2, pad=(pad_left, pad_right, pad_top, pad_bot))
 
-        return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2,
+        if 'SSIM' in self.opt.L1_type:
+            BP2_mask = make_gaussian_limb_masks(BP2)
+            BP2_mask = torch.from_numpy(BP2_mask).float()
+        else:
+            BP2_mask = None
+
+        return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2, 'BP2_mask': BP2_mask,
                 'P1_path': P1_name, 'P2_path': P2_name}
 
     def __len__(self):
