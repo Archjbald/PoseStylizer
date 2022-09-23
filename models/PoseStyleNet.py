@@ -199,7 +199,7 @@ class TransferModel(BaseModel):
         elif self.opt.L1_type == 'FPart_BSSIM_plus_perL1_L1':
             self.loss_ssim = (1 - self.criterionSSIM(self.fake_P2,
                                                      self.input_P2, self.input_BP2_mask_set)) * self.opt.lambda_SSIM
-            losses = self.criterionL1(self.fake_p2, self.input_P2)
+            losses = self.criterionL1(self.fake_P2, self.input_P2)
             self.loss_G_L1 = losses[0] + self.loss_ssim  # perL1 + L1 loss + fpart_bssim loss
             self.loss_originL1 = losses[1].item()  # L1 loss
             self.loss_perceptual = losses[2].item()  # perL1 loss
