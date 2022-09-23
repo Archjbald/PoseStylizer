@@ -38,6 +38,7 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_A', type=float, default=10.0, help='weight for L1 loss')
         self.parser.add_argument('--lambda_B', type=float, default=10.0, help='weight for perceptual L1 loss')
         self.parser.add_argument('--lambda_GAN', type=float, default=5.0, help='weight of GAN loss')
+        self.parser.add_argument('--lambda_SSIM', type=float, default=10.0, help='weight of SSIM loss')
 
         self.parser.add_argument('--epoch_size', type=int, default=4000,
                                  help='Number of image pooled in the dataset for each epcoh')
@@ -58,6 +59,8 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--no_dropout_D', action='store_true', help='no dropout for the discriminator')
         self.parser.add_argument('--DG_ratio', type=int, default=1,
                                  help='how many times for D training after training G once')
+        self.parser.add_argument('--win_size', type=int, default=11, help='the window size of SSIM conputation')
+        self.parser.add_argument('--win_sigma', type=float, default=1.5, help='the window size of SSIM conputation')
 
         # CUT
         self.parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')

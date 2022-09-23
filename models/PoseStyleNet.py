@@ -9,7 +9,7 @@ from .base_model import BaseModel
 from . import networks
 # losses
 from losses.L1_plus_perceptualLoss import L1_plus_perceptualLoss
-
+from losses.pytorch_msssim import SSIM, FPart_BSSIM
 
 class TransferModel(BaseModel):
     def name(self):
@@ -65,6 +65,12 @@ class TransferModel(BaseModel):
             elif opt.L1_type == 'l1_plus_perL1':
                 self.criterionL1 = L1_plus_perceptualLoss(opt.lambda_A, opt.lambda_B, opt.perceptual_layers,
                                                           self.gpu_ids, opt.percep_is_l1)
+            elif opt.L1_type == 'FPart_BSSIM_plus_perL1_L1':  # FPart_BSSIM + PerL1 + L1 loss
+                self.criterionSSIM = FPart_BSSIM(data_range=1.0, size_average=True, win_size=opt.win_size,
+                                                 win_sigma=opt.win_sigma)
+                self.criterionL1 = L1_plus_perceptualLoss(opt.lambda_A, opt.lambda_B, opt.perceptual_layers,
+                                                          self.gpu_ids,
+                                                          opt.percep_is_l1)
             else:
                 raise Exception('Unsurportted type of L1!')
             # initialize optimizers
@@ -185,6 +191,13 @@ class TransferModel(BaseModel):
             self.loss_G_L1 = losses[0]
             self.loss_originL1 = losses[1].item()
             self.loss_perceptual = losses[2].item()
+        elif self.opt.L1_type == 'FPart_BSSIM_plus_perL1_L1':
+            self.loss_ssim = (1 - self.criterionSSIM(self.fake_p2,
+                                                     self.input_P2, self.input_BP2_mask_set)) * self.opt.lambda_SSIM
+            losses = self.criterionL1(self.fake_p2, self.input_P2)
+            self.loss_G_L1 = losses[0]+self.loss_ssim   #  perL1 + L1 loss + fpart_bssim loss
+            self.loss_originL1 = losses[1].item()  # L1 loss
+            self.loss_perceptual = losses[2].item()  # perL1 loss
         else:
             self.loss_G_L1 = self.criterionL1(self.fake_P2, self.input_P2) * self.opt.lambda_A
 
