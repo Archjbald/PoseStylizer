@@ -112,7 +112,8 @@ class TransferModel(BaseModel):
             self.input_BP1 = self.input_BP1.cuda()
             self.input_P2 = self.input_P2.cuda()
             self.input_BP2 = self.input_BP2.cuda()
-            self.input_BP2_mask_set = self.input_BP2_mask_set.cuda()
+            if 'BP2_mask' in input and not input['BP2_mask'] == []:
+                self.input_BP2_mask_set = self.input_BP2_mask_set.cuda()
             if self.opt.dataset_mode in ['keypoint_segmentation']:
                 self.input_MP1 = self.input_MP1.cuda()
                 self.input_MP2 = self.input_MP2.cuda()
