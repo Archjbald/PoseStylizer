@@ -143,7 +143,7 @@ class KeyDataset(BaseDataset):
             BP2_mask = make_gaussian_limb_masks(BP2)
             BP2_mask = torch.from_numpy(BP2_mask).float()
         else:
-            BP2_mask = None
+            BP2_mask = []
 
         return {'P1': P1, 'BP1': BP1, 'P2': P2, 'BP2': BP2, 'BP2_mask': BP2_mask,
                 'P1_path': P1_name, 'P2_path': P2_name}
