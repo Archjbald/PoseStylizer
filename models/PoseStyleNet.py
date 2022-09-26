@@ -70,8 +70,7 @@ class TransferModel(BaseModel):
                 self.criterionSSIM = FPart_BSSIM(data_range=1.0, size_average=True, win_size=opt.win_size,
                                                  win_sigma=opt.win_sigma)
                 self.criterionL1 = L1_plus_perceptualLoss(opt.lambda_A, opt.lambda_B, opt.perceptual_layers,
-                                                          self.gpu_ids,
-                                                          opt.percep_is_l1)
+                                                          self.gpu_ids, opt.percep_is_l1)
             else:
                 raise Exception('Unsurportted type of L1!')
             # initialize optimizers
@@ -291,6 +290,9 @@ class TransferModel(BaseModel):
 
         if self.opt.L1_type == 'l1_plus_perL1':
             ret_errors['origin_L1'] = self.loss_originL1
+            ret_errors['perceptual'] = self.loss_perceptual
+        elif 'SSIM' in self.opt.L1_type:
+            ret_errors['ssim'] = self.loss_ssim
             ret_errors['perceptual'] = self.loss_perceptual
 
         return ret_errors
