@@ -104,7 +104,7 @@ class TransferModel(BaseModel):
             self.input_MP1, self.input_MP2 = input['MP1'], input['MP2']
         self.image_paths = [input['P1_path'][i] + '___' + input['P2_path'][i] for i in range(len(input['P1_path']))]
 
-        if 'BP2_mask' in input and input['BP2_mask'] is not None:
+        if 'BP2_mask' in input and not input['BP2_mask'] == []:
             self.input_BP2_mask_set = input['BP2_mask']
 
         if len(self.gpu_ids) > 0:
