@@ -18,7 +18,7 @@ class KeyDatasetMulti(BaseDataset):
         self.datasets = []
         self.ratios = []
         self.idxs = []
-        self.len_total = 0
+        self.total_size = 0
 
     def initialize(self, opt):
         self.opt = opt
@@ -29,10 +29,10 @@ class KeyDatasetMulti(BaseDataset):
             opt_set.pairLst = pairLst
             self.datasets.append(KeyDataset())
             self.datasets[-1].initialize(opt_set)
-            self.len_total += len(self.datasets[-1])
-            self.idxs += [(len(self.datasets) - 1, i) for i in range(len(self.datasets))]
+            self.total_size += len(self.datasets[-1])
+            self.idxs += [(len(self.datasets) - 1, i) for i in range(self.datasets[-1].size)]
 
-        self.ratios = [len(data) / self.len_total for data in self.datasets]
+        self.ratios = [data.size / self.total_size for data in self.datasets]
         if self.opt.phase == 'train' and not self.opt.debug:
             random.shuffle(self.idxs)
 
@@ -46,7 +46,10 @@ class KeyDatasetMulti(BaseDataset):
         return 'KeyDatasetMulti'
 
     def __len__(self):
-        return self.len_total
+        if self.opt.phase == 'train':
+            return self.opt.epoch_size
+        else:
+            return self.total_size
 
 
 def flip_keypoints(bp):
