@@ -35,6 +35,9 @@ class KeyDataset(BaseDataset):
 
         if self.opt.phase == 'train' and not self.opt.debug:
             random.shuffle(self.pairs)
+        elif self.opt.random:
+            rng = random.Random(31415)
+            rng.shuffle(self.pairs)
 
         print(f"Loaded {len(self.pairs)} pairs")
 

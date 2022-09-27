@@ -57,6 +57,8 @@ def load_generated_images(images_folder, idx_fake):
                 ratio = 1.45
             elif 'market' in images_folder:
                 ratio = 2.
+            elif 'synthe' in images_folder:
+                ratio = 0.75
 
             len_img = round(img.shape[1] / (img.shape[0] / ratio))
             print('Len_img set to: ', len_img)
