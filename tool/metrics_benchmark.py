@@ -75,8 +75,8 @@ def load_generated_images(images_folder, idx_fake):
 
         for s in (0, 1):
             name = img_name[s]
-            if name in names:
-                continue
+            # if name in names:
+            #     continue
             names.append(name)
             input_images.append(imgs[2 * s])
 
