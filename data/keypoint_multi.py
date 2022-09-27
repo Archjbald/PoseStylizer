@@ -36,6 +36,8 @@ class KeyDatasetMulti(BaseDataset):
         if self.opt.phase == 'train' and not self.opt.debug:
             random.shuffle(self.idxs)
 
+        print(f'Multi dataset : loaded {len(self.idxs)} pairs')
+
     def __getitem__(self, index):
         idx = self.idxs[index]
         return self.datasets[idx[0]][idx[1]]

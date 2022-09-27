@@ -3,7 +3,7 @@ def create_model(opt):
     model = None
     print(opt.model)
 
-    assert opt.dataset_mode in ['keypoint', 'keypoint_segmentation']
+    assert opt.dataset_mode in ['keypoint', 'keypoint_segmentation', 'keypoint_multi']
     if opt.model == 'PoseStyleNet':
         if opt.backward == 'cut':
             from .PoseCutNet import TransferCUTModel
