@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import Compose, Resize, ToTensor
 from torchvision.transforms.functional import to_tensor
 
-from metrics.core import (
+from core import (
     get_inception_feature,
     calculate_inception_score,
     calculate_frechet_inception_distance,

@@ -3,7 +3,7 @@
 import argparse
 import os
 
-from .utils import calc_and_save_stats
+from utils import calc_and_save_stats
 
 
 if __name__ == '__main__':

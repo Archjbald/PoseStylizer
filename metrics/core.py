@@ -8,7 +8,7 @@ from scipy import linalg
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 
-from metrics.inception import InceptionV3
+from inception import InceptionV3
 
 
 # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
