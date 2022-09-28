@@ -10,8 +10,9 @@ from PIL import Image
 
 from evaluate_IS import get_inception_score
 from evaluate_FID import get_fid
+from metrics_ssim_market import ssim_score
 
-from calPCKH_market import get_head_wh, valid_points, how_many_right_seq
+from cal_PCKh import get_pckh
 
 
 def get_len_img(img):
@@ -87,41 +88,6 @@ def load_generated_images(images_folder, idx_fake):
     return (np.stack(input_images, axis=0), np.stack(generated_images, axis=0), names)
 
 
-def get_pckh(results_dir):
-    target_annotation = os.path.join(results_dir, 'annots_real.csv')
-    pred_annotation = os.path.join(results_dir, 'annots_fake.csv')
-    tAnno = pd.read_csv(target_annotation, sep=':')
-    pAnno = pd.read_csv(pred_annotation, sep=':')
-
-    pRows = pAnno.shape[0]
-
-    nAll = 0
-    nCorrect = 0
-    alpha = 0.5
-    for i in range(pRows):
-        pValues = pAnno.iloc[i].values
-        pname = pValues[0]
-        pycords = json.loads(pValues[1])  # list of numbers
-        pxcords = json.loads(pValues[2])
-
-        tValues = tAnno.query('name == "%s"' % (pname)).values[0]
-        tycords = json.loads(tValues[1])  # list of numbers
-        txcords = json.loads(tValues[2])
-
-        xBox, yBox = get_head_wh(txcords, tycords)
-        if xBox == -1 or yBox == -1:
-            continue
-
-        head_size = (xBox, yBox)
-        nAll = nAll + valid_points(tycords)
-        nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords, tycords, head_size, alpha)
-
-    pckh = nCorrect * 1.0 / nAll
-    # print(f'{nCorrect}/{nAll} : {pckh:.3f}%')
-
-    return pckh, nCorrect, nAll
-
-
 def get_metrics(results_dir, len_img, idx_fake):
     print('Loading images from ', results_dir)
     input_images, generated_images, names = \
@@ -133,20 +99,24 @@ def get_metrics(results_dir, len_img, idx_fake):
     source_images = input_images[0::2]
     target_images = input_images[1::2]
 
-    print('Input images...')
+    print('\nInput images...')
     IS_input = get_inception_score(source_images)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
 
-    print('Input generated....')
+    print('\nInput generated....')
     IS_output = get_inception_score(generated_images)
     print(f"IS output: {IS_output[0]}, std: {IS_output[1]}")
 
-    print('FID...')
+    print('\nFID...')
     FID = get_fid(source_images, generated_images)
     print("FID: ", FID)
 
     PCKs = get_pckh(results_dir)
     print(f'PCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
+
+    print("\nCompute structured similarity score (SSIM)...")
+    structured_score = ssim_score(generated_images, target_images)
+    print("SSIM score %s" % structured_score)
 
 
 def get_last_dir(dpath):
