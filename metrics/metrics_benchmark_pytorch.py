@@ -2,8 +2,9 @@ import os
 import sys
 import glob
 
+sys.path.append(os.getcwd())
+
 from torch.utils.data import DataLoader
-import numpy as np
 
 from utils import get_fid, get_inception_score, ImageDatasetSplit
 from tool.metrics_ssim_market import ssim_score
@@ -33,7 +34,7 @@ def get_metrics(results_dir, idx_fake):
     print("FID: ", FID)
 
     PCKs = get_pckh(results_dir)
-    print(f'PCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
+    print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
     print("\nCompute structured similarity score (SSIM)...")
     structured_score = ssim_score(generated_images_np, target_images_np)

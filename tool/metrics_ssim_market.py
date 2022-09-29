@@ -18,7 +18,7 @@ def ssim_score(generated_images, reference_images):
     ssim_score_list = []
     for reference_image, generated_image in zip(reference_images, generated_images):
         ssim = structural_similarity(reference_image, generated_image, gaussian_weights=True, sigma=1.5,
-                                     use_sample_covariance=False, multichannel=True,
+                                     use_sample_covariance=False, channel_axis=-1,
                                      data_range=generated_image.max() - generated_image.min())
         ssim_score_list.append(ssim)
     return np.mean(ssim_score_list)
