@@ -10,7 +10,11 @@ def part_ssim(X, Y, part_mask, mask_t=0.4, data_range=255, size_average=True, K=
 
     X_repeat = torch.unsqueeze(X, 1).repeat(1, mask_channel, 1, 1, 1).reshape(new_shape)
     Y_repeat = torch.unsqueeze(Y, 1).repeat(1, mask_channel, 1, 1, 1).reshape(new_shape)
-    part_mask_repeat = torch.unsqueeze(part_mask, 2).repeat(1, 1, img_channel, 1, 1).reshape(new_shape)
+    try:
+        part_mask_repeat = torch.unsqueeze(part_mask, 2).repeat(1, 1, img_channel, 1, 1).reshape(new_shape)
+    except RuntimeError as err:
+        print(f'*** X: {X.shape}, PM: {part_mask.shape}, new: {new_shape}')
+        raise err
 
     K1, K2 = K
     compensation = 1.0
