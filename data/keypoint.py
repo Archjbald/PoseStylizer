@@ -143,7 +143,7 @@ class KeyDataset(BaseDataset):
             BP2 = torch.nn.functional.pad(input=BP2, pad=(pad_left, pad_right, pad_top, pad_bot))
 
         # if self.opt.phase == 'train' and 'SSIM' in self.opt.L1_type:
-        if 'SSIM' in self.opt.L1_type:
+        if 'L1_type' in self.opt and 'SSIM' in self.opt.L1_type:
             BP2_mask = make_gaussian_limb_masks(BP2)
             BP2_mask = torch.from_numpy(BP2_mask).float()
         else:
