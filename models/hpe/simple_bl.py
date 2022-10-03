@@ -87,7 +87,8 @@ class PoseResNet(PoseNet):
 
         thorax_v = (v[:, 1] + v[:, 4]) / 2.
         v = torch.cat((v[:, :1], thorax_v[:, None], v[:, 1:]), dim=1)
-        v = v > 0.25
+        # v = v > 0.25
+        v = v > 0.15
 
         result = torch.zeros(kps.shape[:-1] + img_size, dtype=out.dtype, device=out.device)
         if self.mesh_grid is None:
@@ -116,7 +117,8 @@ def get_pose_net(gen_final=True):
     block_class, layers = resnet_spec[num_layers]
     model = PoseResNet(block_class, layers, gen_final=gen_final)
 
-    model.init_weights('assets/coco_vis2_0_novis.pth.tar')
+    model.init_weights('assets/autob_vis2_soft_fine_novis.pth.tar')
+    # model.init_weights('assets/coco_vis2_0_novis.pth.tar')
     for p in model.parameters():
         p.requires_grad = False
     if torch.cuda.is_available():
