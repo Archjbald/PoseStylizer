@@ -110,6 +110,12 @@ class ImageDatasetSplit(Dataset):
             image = to_tensor(split_img)
         return image
 
+    def get_name(self, idx):
+        path = self.paths[idx]
+        file_name = os.path.basename(path)
+        img_names = file_name.split('_vis.')[0].split('___')
+        return img_names[self.img_idx > 0]
+
 
 def get_inception_score_and_fid(
         images: Union[torch.FloatTensor, DataLoader],

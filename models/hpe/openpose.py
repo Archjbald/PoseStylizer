@@ -176,5 +176,6 @@ def get_pose_net(gen_final=True):
     model.init_weights('assets/body_pose_model.pth')
     for p in model.parameters():
         p.requires_grad = False
-    model.cuda()
+    if torch.cuda.is_available():
+        model.cuda()
     return model

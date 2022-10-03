@@ -119,5 +119,6 @@ def get_pose_net(gen_final=True):
     model.init_weights('assets/coco_vis2_0_novis.pth.tar')
     for p in model.parameters():
         p.requires_grad = False
-    model.cuda()
+    if torch.cuda.is_available():
+        model.cuda()
     return model

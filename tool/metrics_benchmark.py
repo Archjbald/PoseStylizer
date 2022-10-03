@@ -12,7 +12,7 @@ from evaluate_IS import get_inception_score
 from evaluate_FID import get_fid
 from metrics_ssim_market import ssim_score
 
-from cal_PCKh import get_pckh
+from cal_PCKh import get_pckh_from_dir
 
 
 def get_len_img(img):
@@ -111,7 +111,7 @@ def get_metrics(results_dir, len_img, idx_fake):
     FID = get_fid(source_images, generated_images)
     print("FID: ", FID)
 
-    PCKs = get_pckh(results_dir)
+    PCKs = get_pckh_from_dir(results_dir)
     print(f'PCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
     print("\nCompute structured similarity score (SSIM)...")
