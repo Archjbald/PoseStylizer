@@ -89,10 +89,6 @@ class TransferModel(BaseModel):
                 self.optimizers.append(self.optimizer_D_PP)
             for optimizer in self.optimizers:
                 self.schedulers.append(networks.get_scheduler(optimizer, opt))
-        else:
-            from .hpe.simple_bl import get_pose_net
-
-            self.netHPE = get_pose_net()
 
         print('---------- Networks initialized -------------')
 
@@ -127,13 +123,7 @@ class TransferModel(BaseModel):
     def test(self):
         with torch.no_grad():
             self.fake_P2 = self.netG([self.input_P1, self.input_BP1, self.input_BP2])  # G_A(A)
-
             self.fake_P1 = self.netG([self.input_P2, self.input_BP2, self.input_BP1])  # G_B(B)
-
-            self.fake_BP1 = self.netHPE(self.fake_P1)[0]
-            self.fake_BP2 = self.netHPE(self.fake_P2)[0]
-            self.real_BP1 = self.netHPE(self.input_P1)[0]
-            self.real_BP2 = self.netHPE(self.input_P2)[0]
 
     def test_D(self):
         if not hasattr(self, 'netD_PB'):

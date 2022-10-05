@@ -11,31 +11,28 @@ import time
 
 class HPEAnnots:
     def __init__(self):
-        self.annots_real = {'x': [], 'y': []}
-        self.annots_fake = {'x': [], 'y': []}
+        self.annots = {'x': [], 'y': []}
+        # Picture format coordinates
         self.img_paths = []
 
-    def add_annots(self, real, fake, img_paths=None):
-        real_kps, real_v = get_kps(real)
-        fake_kps, fake_v = get_kps(fake)
+    def add_annots(self, bps, img_paths=None):
+        kps, v = get_kps(bps)
 
-        for k, v, annots in [(real_kps, real_v, self.annots_real), (fake_kps, fake_v, self.annots_fake)]:
-            vis = v[:, :, None]
-            kps = k * vis + (~vis) * -1
-            annots['x'] += kps[:, :, 0].tolist()
-            annots['y'] += kps[:, :, 1].tolist()
+        vis = v[:, :, None]
+        kps = kps * vis + (~vis) * -1
+        self.annots['x'] += kps[:, :, 1].tolist()
+        self.annots['y'] += kps[:, :, 0].tolist()
 
         if img_paths:
             self.img_paths += img_paths
 
-    def save(self, path):
-        for name, annots in [('real', self.annots_real), ('fake', self.annots_fake)]:
-            annots_csv = "name:keypoints_y:keypoints_x\n"
-            annots_csv += '\n'.join(
-                [f'{img}:{annots["y"][i]}:{annots["x"][i]}' for i, img in enumerate(self.img_paths)])
+    def save(self, path, name=None):
+        annots_csv = "name:keypoints_y:keypoints_x\n"
+        annots_csv += '\n'.join(
+            [f'{img}:{self.annots["y"][i]}:{self.annots["x"][i]}' for i, img in enumerate(self.img_paths)])
 
-            with open(os.path.join(path, f"annots_{name}.csv"), 'w') as f:
-                f.write(annots_csv)
+        with open(os.path.join(path, f"annots_{name}.csv"), 'w') as f:
+            f.write(annots_csv)
 
 
 def test(opt, model, dataset):
@@ -80,15 +77,15 @@ def test(opt, model, dataset):
         #     visuals = model.get_current_visuals_widerpose()
         img_paths = model.get_image_paths()
 
-        hpe_annots.add_annots(model.real_BP1, model.fake_BP1, img_paths=[ip.split('___')[0] for ip in img_paths])
-        hpe_annots.add_annots(model.real_BP2, model.fake_BP2, img_paths=[ip.split('___')[1] for ip in img_paths])
+        hpe_annots.add_annots(model.input_BP1, img_paths=[ip.split('___')[0] for ip in img_paths])
+        hpe_annots.add_annots(model.input_BP2, img_paths=[ip.split('___')[1] for ip in img_paths])
 
         visualizer.save_images(webpage, visuals, img_paths)
         if not i % 100:
             print(i)
 
     webpage.save()
-    hpe_annots.save(webpage.web_dir)
+    hpe_annots.save(webpage.web_dir, name="real")
 
 
 def set_test_opt(opt, max_dataset_size=None):
