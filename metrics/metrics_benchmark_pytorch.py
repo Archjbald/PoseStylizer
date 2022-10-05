@@ -21,13 +21,6 @@ def get_metrics(results_dir, idx_fake):
     target_images_loader = DataLoader(ImageDatasetSplit(img_dir, img_idx=2), shuffle=False)
     generated_images_loader = DataLoader(ImageDatasetSplit(img_dir, img_idx=idx_fake), shuffle=False)
 
-    from models.hpe.openpose import get_pose_net
-    op = get_pose_net()
-    PCKs = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, results_dir=results_dir)
-    print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
-
-    return
-
     print('\nInput images...')
     IS_input = get_inception_score(target_images_loader)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
@@ -40,8 +33,17 @@ def get_metrics(results_dir, idx_fake):
     FID = get_fid(generated_images_loader, gt_loader=target_images_loader)
     print("FID: ", FID)
 
-    PCKs = get_pckh_from_dir(results_dir)
-    print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
+    # PCKs = get_pckh_from_dir(results_dir)
+    # print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
+
+    from models.hpe.openpose import get_pose_net
+    op = get_pose_net()
+
+    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, results_dir=results_dir)
+    print(f'\nPCKh: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
+
+    PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, results_dir=results_dir)
+    print(f'\nPCKh: {PCKs_output[0] * 100:.2f}% ({PCKs_output[1]}/{PCKs_output[2]} )')
 
     print("\nCompute structured similarity score (SSIM)...")
     structured_score = ssim_score(generated_images_np, target_images_np)
