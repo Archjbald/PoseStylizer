@@ -90,6 +90,9 @@ class ImageDatasetSplit(Dataset):
         elif 'synthe' in root:
             self.ratio = 0.75
 
+        if self.paths:
+            self.__getitem__(0)
+
     def __len__(self):  # noqa
         return len(self.paths)
 
@@ -219,7 +222,7 @@ def get_fid(
         f.close()
     else:
         assert gt_loader is not None
-        mu, sigma = calc_stats(gt_loader, use_torch=use_torch, **kwargs)
+        mu, sigma = calc_stats(gt_loader, use_torch=use_torch, verbose=False, **kwargs)
 
     fid = calculate_frechet_inception_distance(acts, mu, sigma, use_torch)
 
