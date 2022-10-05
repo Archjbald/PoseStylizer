@@ -93,7 +93,7 @@ def test(opt, model, dataset):
 
 def set_test_opt(opt, max_dataset_size=None):
     opt.nThreads = 0  # test code only supports nThreads = 1
-    opt.batchSize = 2  # test code only supports batchSize = 1
+    opt.batchSize = 1  # test code only supports batchSize = 1
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
     opt.phase = 'test'

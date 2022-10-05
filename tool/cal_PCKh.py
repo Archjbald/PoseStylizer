@@ -120,6 +120,8 @@ def get_pckh_from_hpe(img_loader, hpe_net, results_dir):
         kps[vis == False] = MISSING_VALUE
         img_name = img_loader.dataset.get_name(i)
 
+        pycords, pxcords = kps[0].t().tolist()
+
         tValues = tAnno.query('name == "%s"' % (img_name)).values[0]
         tycords = json.loads(tValues[1])  # list of numbers
         txcords = json.loads(tValues[2])
@@ -127,8 +129,6 @@ def get_pckh_from_hpe(img_loader, hpe_net, results_dir):
         xBox, yBox = get_head_wh(txcords, tycords)
         if xBox == -1 or yBox == -1:
             continue
-
-        pxcords, pycords = kps[0].t().tolist()
 
         head_size = (xBox, yBox)
         nAll = nAll + valid_points(tycords)

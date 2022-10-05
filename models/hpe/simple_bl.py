@@ -9,11 +9,11 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
+from collections import OrderedDict
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from collections import OrderedDict
 
 from .modules import DeconvStage, PoseNet
 from .resnet import ResNet, BasicBlock, Bottleneck
@@ -31,6 +31,8 @@ class PoseResNet(PoseNet):
         self.gen_final = gen_final
         self.mesh_grid = None
 
+        self.img_size = (256, 192)
+
     def switch_gen(self):
         self.gen_final = self.gen_final_train or not self.gen_final
 
@@ -45,12 +47,40 @@ class PoseResNet(PoseNet):
         submodel = torch.nn.DataParallel(submodel, device_ids=gpu_ids).cuda()
         return submodel
 
+    def resize(self, x):
+        target_ratio = self.img_size[0] / self.img_size[1]
+        actual_ratio = x.shape[-2] / x.shape[-1]
+        pad_left, pad_right, pad_top, pad_bot = (0, 0, 0, 0)
+        if target_ratio > actual_ratio:
+            x_scaled = nn.functional.interpolate(x, (round(self.img_size[1] * target_ratio), self.img_size[1]))
+            pad_top = (self.img_size[0] - x_scaled.shape[-2]) // 2
+            pad_bot = self.img_size[0] - x_scaled.shape[-2] - pad_top
+            x_padded = nn.functional.pad(input=x_scaled, pad=(0, 0, pad_top, pad_bot))
+        elif target_ratio < actual_ratio:
+            x_scaled = nn.functional.interpolate(x, (self.img_size[0], round(self.img_size[0] / actual_ratio)))
+            pad_left = (self.img_size[1] - x_scaled.shape[-1]) // 2
+            pad_right = self.img_size[1] - x_scaled.shape[-1] - pad_left
+            x_padded = nn.functional.pad(input=x_scaled, pad=(pad_left, pad_right))
+        else:
+            x_padded = x
+
+        return x_padded, (pad_top, pad_bot, pad_left, pad_right)
+
+    def depad(self, x, target_size, pads):
+        x_depad = x[..., pads[0]: -pads[1] if pads[1] else None, pads[2]: -pads[3] if pads[3] else None]
+        x_scaled = nn.functional.interpolate(x_depad, target_size)
+        return x_scaled
+
+
     def forward(self, x):
         # x = torch.cat([x, x], dim=0)
+        original_size = x.shape[-2:]
+        x, pads = self.resize(x)
         feat = self.resnet(x)
         out = self.final_stage(feat)
 
         bps = self.generate_final_bps(out, x)
+        bps = self.depad(bps, original_size, pads)
 
         return bps, [out, ]
 
@@ -117,8 +147,8 @@ def get_pose_net(gen_final=True):
     block_class, layers = resnet_spec[num_layers]
     model = PoseResNet(block_class, layers, gen_final=gen_final)
 
-    model.init_weights('assets/autob_vis2_soft_fine_novis.pth.tar')
-    # model.init_weights('assets/coco_vis2_0_novis.pth.tar')
+    # model.init_weights('assets/autob_vis2_soft_fine_novis.pth.tar')
+    model.init_weights('assets/coco_vis2_0_novis.pth.tar')
     for p in model.parameters():
         p.requires_grad = False
     if torch.cuda.is_available():

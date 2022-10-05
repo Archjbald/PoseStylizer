@@ -130,7 +130,7 @@ class KeyDataset(BaseDataset):
         scale_factor = 2 ** max(1, self.opt.G_n_downsampling, self.opt.D_n_downsampling)
         height_reduced = height / scale_factor
         width_reduced = width / scale_factor
-        if not height_reduced.is_integer() or not width_reduced.is_integer():
+        if not self.opt.dataset == 'fashion' and (not height_reduced.is_integer() or not width_reduced.is_integer()):
             height_target = 32 * math.ceil(height_reduced)
             width_target = 32 * math.ceil(width_reduced)
             pad_top = (height_target - height) // 2
