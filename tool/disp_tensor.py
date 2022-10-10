@@ -3,8 +3,12 @@ import numpy as np
 
 
 def disp_tensor(tens):
-    array = tens.clone().cpu()
-    array = array.detach().numpy()
+    if not isinstance(tens, np.ndarray):
+        array = tens.clone().cpu()
+        array = array.detach().numpy()
+    else:
+        array = tens
+
     if array.ndim > 3:
         array = array[0]
     if array.ndim > 2:

@@ -108,7 +108,18 @@ def get_pckh_from_dir(results_dir):
 
 
 def get_pckh_from_hpe(img_loader, hpe_net, results_dir):
-    target_annotation = os.path.join(results_dir, ANNOTS_TARGETS)
+    # target_annotation = os.path.join(results_dir, ANNOTS_TARGETS)
+    if "synthe" in results_dir:
+        target_annotation = 'dataset/synthe_dripe/synthe-annotation-test.csv'
+    elif "draiver" in results_dir:
+        target_annotation = 'dataset/draiver/draiver-annotation_test.csv'
+    elif "fashion" in results_dir:
+        target_annotation = 'dataset/fashion_data/fashion-resize-annotation-test.csv'
+    elif "market" in results_dir:
+        target_annotation = 'dataset/market_data/market-annotation-test.csv'
+    else:
+        raise ValueError('Dataset not implemented')
+
     tAnno = pd.read_csv(target_annotation, sep=':')
 
     nAll = 0

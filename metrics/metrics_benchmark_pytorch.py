@@ -7,11 +7,14 @@ sys.path.append(os.getcwd())
 from torch.utils.data import DataLoader
 
 from utils import get_fid, get_inception_score, ImageDatasetSplit
-from tool.metrics_ssim_market import ssim_score
-from tool.cal_PCKh import get_pckh_from_dir, get_pckh_from_hpe
+from metrics.metrics_ssim_market import ssim_score
+from metrics.cal_PCKh import get_pckh_from_hpe
 
 
 def get_metrics(results_dir, idx_fake):
+    from models.hpe.openpose import get_pose_net
+    op = get_pose_net()
+
     img_dir = os.path.join(results_dir, 'images')
 
     source_images_np = ImageDatasetSplit(img_dir, img_idx=0, transform=lambda x: x)
@@ -50,14 +53,11 @@ def get_metrics(results_dir, idx_fake):
     # PCKs = get_pckh_from_dir(results_dir)
     # print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
-    from models.hpe.openpose import get_pose_net
-    op = get_pose_net()
-
     PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, results_dir=results_dir)
-    print(f'\nPCKh: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
+    print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
 
     PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, results_dir=results_dir)
-    print(f'\nPCKh: {PCKs_output[0] * 100:.2f}% ({PCKs_output[1]}/{PCKs_output[2]} )')
+    print(f'\nPCKh output: {PCKs_output[0] * 100:.2f}% ({PCKs_output[1]}/{PCKs_output[2]} )')
 
     print("\nCompute structured similarity score (SSIM)...")
     structured_score = ssim_score(generated_images_np, target_images_np)
@@ -65,7 +65,7 @@ def get_metrics(results_dir, idx_fake):
 
     if cycle_images_loader:
         PCKs_output_2 = get_pckh_from_hpe(img_loader=cycle_images_loader, hpe_net=op, results_dir=results_dir)
-        print(f'\nPCKh_2: {PCKs_output_2[0] * 100:.2f}% ({PCKs_output_2[1]}/{PCKs_output_2[2]} )')
+        print(f'\nPCKh_2 output: {PCKs_output_2[0] * 100:.2f}% ({PCKs_output_2[1]}/{PCKs_output_2[2]} )')
 
         print("\nCompute structured similarity score (SSIM)...")
         structured_score_2 = ssim_score(cycle_images_np, source_images_np)

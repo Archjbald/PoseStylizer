@@ -1,18 +1,16 @@
 import os
 import sys
-import json
 import glob
 
 import skimage
 import numpy as np
-import pandas as pd
 from PIL import Image
 
 from evaluate_IS import get_inception_score
 from evaluate_FID import get_fid
-from metrics_ssim_market import ssim_score
+from metrics.metrics_ssim_market import ssim_score
 
-from cal_PCKh import get_pckh_from_dir
+from metrics.cal_PCKh import get_pckh_from_dir
 
 
 def get_len_img(img):

@@ -14,6 +14,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import torch.nn as nn
+import torchvision.transforms as transforms
 
 from .modules import DeconvStage, PoseNet
 from .resnet import ResNet, BasicBlock, Bottleneck
@@ -71,9 +72,12 @@ class PoseResNet(PoseNet):
         x_scaled = nn.functional.interpolate(x_depad, target_size)
         return x_scaled
 
-
     def forward(self, x):
         # x = torch.cat([x, x], dim=0)
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225])
+
+        x = normalize(x)
         original_size = x.shape[-2:]
         x, pads = self.resize(x)
         feat = self.resnet(x)
