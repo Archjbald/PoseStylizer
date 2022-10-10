@@ -33,5 +33,6 @@ def create_model(opt):
         raise ValueError("Model [%s] not recognized." % opt.model)
 
     model.initialize(opt)
-    print("model [%s] was created" % (model.name()))
+    print("Model [%s] was created" % (model.name()))
+    print(f"Number of parameters : {sum(p.numel() for p in model.parameters())}")
     return model
