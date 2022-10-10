@@ -35,4 +35,6 @@ def create_model(opt):
     model.initialize(opt)
     print("Model [%s] was created" % (model.name()))
     print(f"Number of parameters : {sum(p.numel() for p in model.parameters())}")
+    submodels = {sub: model.__getattr__(sub) for sub in model.model_names}
+    print("\n".join([f"\t\t{name}: {sum(p.numel() for p in sub.parameters())}" for name, sub in submodels.items()]))
     return model
