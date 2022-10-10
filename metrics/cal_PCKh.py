@@ -4,6 +4,7 @@ import numpy as np
 import json
 import os
 import torch
+import torchvision.transforms as trans
 
 from util.util import get_kps
 
@@ -107,7 +108,7 @@ def get_pckh_from_dir(results_dir):
     return pckh, nCorrect, nAll
 
 
-def get_pckh_from_hpe(img_loader, hpe_net, target_annotation):
+def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
     # target_annotation = os.path.join(results_dir, ANNOTS_TARGETS)
     tAnno = pd.read_csv(target_annotation, sep=':')
 
@@ -116,7 +117,9 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation):
     alpha = 0.5
     for i, img in enumerate(img_loader):
         hmaps = hpe_net(img.cuda() if torch.cuda.is_available() else img)[0]
-        kps, vis = get_kps(hmaps)
+        hmaps_sized = trans.functional.resize(hmaps, gt_size)
+        kps, vis = get_kps(hmaps_sized)
+
         kps[vis == False] = MISSING_VALUE
         img_name = img_loader.dataset.get_name(i)
 
