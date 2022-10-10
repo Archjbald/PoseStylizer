@@ -45,10 +45,6 @@ def get_metrics(results_dir, idx_fake):
 
     print(f'Annotation file : {target_annotation}, {os.path.isfile(target_annotation)}')
 
-    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation)
-    print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
-    return
-
     print('\nInput images...')
     IS_input = get_inception_score(target_images_loader)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
