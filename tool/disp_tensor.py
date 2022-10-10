@@ -14,7 +14,7 @@ def disp_tensor(tens):
     if array.ndim > 2:
         if array.shape[0] > 3:
             array = array.max(axis=0, keepdims=True)
-        elif array.shape[0] == 3:
+        elif array.shape[0] == 3 and (array < 0).any():
             array = (array + 1) / 2
     else:
         array = array[None]

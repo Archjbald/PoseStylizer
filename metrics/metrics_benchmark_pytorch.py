@@ -12,7 +12,7 @@ from metrics.cal_PCKh import get_pckh_from_hpe
 
 
 def get_metrics(results_dir, idx_fake):
-    from models.hpe.openpose import get_pose_net
+    from models.hpe.simple_bl import get_pose_net
     op = get_pose_net()
 
     img_dir = os.path.join(results_dir, 'images')
@@ -29,6 +29,25 @@ def get_metrics(results_dir, idx_fake):
         idx_cycle = idx_fake + (2 if idx_fake + 3 < generated_images_np.len_img else 1)
         cycle_images_loader = DataLoader(ImageDatasetSplit(img_dir, img_idx=idx_cycle), shuffle=False)
         cycle_images_np = ImageDatasetSplit(img_dir, img_idx=idx_cycle, transform=lambda x: x)
+
+    print('Loaded images : ', len(generated_images_loader))
+
+    if "synthe" in results_dir:
+        target_annotation = 'dataset/synthe_dripe/synthe-annotation-test.csv'
+    elif "draiver" in results_dir:
+        target_annotation = 'dataset/draiver/draiver-annotation_test.csv'
+    elif "fashion" in results_dir:
+        target_annotation = 'dataset/fashion_data/fashion-resize-annotation-test.csv'
+    elif "market" in results_dir:
+        target_annotation = 'dataset/market_data/market-annotation-test.csv'
+    else:
+        raise ValueError('Dataset not implemented')
+
+    print(f'Annotation file : {target_annotation}, {os.path.isfile(target_annotation)}')
+
+    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation)
+    print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
+    return
 
     print('\nInput images...')
     IS_input = get_inception_score(target_images_loader)
@@ -53,10 +72,10 @@ def get_metrics(results_dir, idx_fake):
     # PCKs = get_pckh_from_dir(results_dir)
     # print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
-    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, results_dir=results_dir)
+    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation)
     print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
 
-    PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, results_dir=results_dir)
+    PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, target_annotation=target_annotation)
     print(f'\nPCKh output: {PCKs_output[0] * 100:.2f}% ({PCKs_output[1]}/{PCKs_output[2]} )')
 
     print("\nCompute structured similarity score (SSIM)...")
@@ -64,7 +83,8 @@ def get_metrics(results_dir, idx_fake):
     print("SSIM score %s" % structured_score)
 
     if cycle_images_loader:
-        PCKs_output_2 = get_pckh_from_hpe(img_loader=cycle_images_loader, hpe_net=op, results_dir=results_dir)
+        PCKs_output_2 = get_pckh_from_hpe(img_loader=cycle_images_loader, hpe_net=op,
+                                          target_annotation=target_annotation)
         print(f'\nPCKh_2 output: {PCKs_output_2[0] * 100:.2f}% ({PCKs_output_2[1]}/{PCKs_output_2[2]} )')
 
         print("\nCompute structured similarity score (SSIM)...")
