@@ -330,3 +330,21 @@ def weighted_line(r0, c0, r1, c1, w, r_min=0, r_max=np.inf):
     mask = np.logical_and.reduce((yy >= r_min, yy < r_max, vals > 0))
 
     return yy[mask].astype(int), xx[mask].astype(int), vals[mask]
+
+
+from math import prod
+
+
+def mean_weights(model):
+    parameters = dict(model.named_parameters())
+    weights_sum = {}
+    weights_num = {}
+    for n, p in parameters.items():
+        if '.weight' not in n:
+            continue
+        key = '.'.join(n.split('.')[1:3])
+        weights_sum[key] = weights_sum.setdefault(key, 0) + p.sum().item() / prod(p.shape)
+        weights_num[key] = weights_num.setdefault(key, 0) + 1
+
+    for n, p in weights_num.items():
+        print(f'{n}: {p}, {weights_sum[n]:.3f}, {weights_sum[n] / p:.3f}')
