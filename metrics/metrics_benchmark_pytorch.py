@@ -47,11 +47,6 @@ def get_metrics(results_dir, idx_fake):
     else:
         raise ValueError('Dataset not implemented')
 
-    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation,
-                                   gt_size=gt_size)
-    print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
-    return
-
     print(f'Annotation file : {target_annotation}, {os.path.isfile(target_annotation)}')
 
     print('\nInput images...')
