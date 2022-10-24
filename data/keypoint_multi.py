@@ -22,19 +22,34 @@ class KeyDatasetMulti(BaseDataset):
 
     def initialize(self, opt):
         self.opt = opt
-        for root, pairLst in [('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-train.csv'),
-                              ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-train.csv')]:
+        for is_real, (root, pairLst) in enumerate([
+            ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-train.csv'),
+            ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-train.csv')
+        ]):
             opt_set = Namespace(**vars(opt))
             opt_set.dataroot = root
             opt_set.pairLst = pairLst
             self.datasets.append(KeyDataset())
             self.datasets[-1].initialize(opt_set)
-            self.total_size += len(self.datasets[-1])
+            self.total_size += self.datasets[-1].size
             self.idxs += [(len(self.datasets) - 1, i) for i in range(self.datasets[-1].size)]
 
         self.ratios = [data.size / self.total_size for data in self.datasets]
-        if self.opt.phase == 'train' and not self.opt.debug:
-            random.shuffle(self.idxs)
+        if self.opt.phase == 'train':
+            synthe_size = self.datasets[0].size
+            real_size = sum([dataset.size for dataset in self.datasets[1:]])
+            if (1 - opt.ratio_multi) < self.ratios[0]:
+                self.idxs = [(0, i) for i in random.sample(range(self.datasets[0].size),
+                                                           int(real_size * (1 - opt.ratio_multi) / opt.ratio_multi))]
+                self.idxs += [i for dataset in self.datasets[1:] for i in range(dataset.size)]
+            elif (1 - opt.ratio_multi) > self.ratios[0]:
+                self.idxs = [(0, i) for i in range(self.datasets[0].size)]
+                self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
+                              random.sample(range(dataset.size),
+                                            int(synthe_size * opt.ratio_multi / (
+                                                        1 - opt.ratio_multi) * dataset.size / real_size))]
+            if not self.opt.debug:
+                random.shuffle(self.idxs)
 
         print(f'Multi dataset : loaded {len(self.idxs)} pairs')
 

@@ -7,6 +7,7 @@ import torch
 import torchvision.transforms as trans
 
 from util.util import get_kps
+from metrics.utils import resize_keypoints
 
 MISSING_VALUE = -1
 
@@ -117,8 +118,9 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
     alpha = 0.5
     for i, img in enumerate(img_loader):
         hmaps = hpe_net(img.cuda() if torch.cuda.is_available() else img)[0]
-        hmaps_sized = trans.functional.resize(hmaps, gt_size)
-        kps, vis = get_kps(hmaps_sized)
+        kps, vis = get_kps(hmaps)
+        # hmaps_sized = trans.functional.resize(hmaps, gt_size)
+        # kps, vis = get_kps(hmaps_sized)
 
         kps[vis == False] = MISSING_VALUE
         img_name = img_loader.dataset.get_name(i)
@@ -126,8 +128,12 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
         pycords, pxcords = kps[0].t().tolist()
 
         tValues = tAnno.query('name == "%s"' % (img_name)).values[0]
-        tycords = json.loads(tValues[1])  # list of numbers
+        tycords = json.loads(tValues[1])
+        tycords = [v if k not in [5, 6, 7, 11, 12, 13, 15, 17] else MISSING_VALUE for k, v in
+                   enumerate(tycords)]  # list of numbers
         txcords = json.loads(tValues[2])
+
+        txcords, tycords = resize_keypoints(txcords, tycords, gt_size, list(img.shape[-2:]))
 
         xBox, yBox = get_head_wh(txcords, tycords)
         if xBox == -1 or yBox == -1:

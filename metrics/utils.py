@@ -362,3 +362,13 @@ def calc_stats(loader, use_torch=False, verbose=True):
         sigma = np.cov(acts, rowvar=False)
 
     return mu, sigma
+
+
+def resize_keypoints(kpsx, kpsy, old_size, new_size, missing_value=-1):
+    new_kps = []
+    for i, kps in enumerate((kpsy, kpsx)):
+        factor = new_size[i] / old_size[i]
+        new_kps.append([int(kp * factor) if kp >= 0 else missing_value for kp in kps])
+
+    return new_kps[::-1]
+

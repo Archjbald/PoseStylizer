@@ -63,6 +63,9 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--win_size', type=int, default=11, help='the window size of SSIM conputation')
         self.parser.add_argument('--win_sigma', type=float, default=1.5, help='the window size of SSIM conputation')
 
+        self.parser.add_argument('--ratio_multi', type=float, default=1/6, help='Ratio of real data in multi dataset')
+
+
         # CUT
         self.parser.add_argument('--beta2', type=float, default=0.999, help='momentum term of adam')
         self.parser.add_argument('--patch_sizes', type=str, default='3',
