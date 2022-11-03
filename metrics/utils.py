@@ -55,6 +55,47 @@ class ImageDataset(Dataset):
         return image
 
 
+class ImageDatasetMulti(Dataset):
+    """An simple image dataset for calculating inception score and FID."""
+
+    def __init__(self, roots, exts=['png', 'jpg', 'JPEG'], transform=None):
+        self.paths = []
+        self.transform = transform
+        for root in roots:
+            for ext in exts:
+                self.paths.extend(
+                    list(glob(
+                        os.path.join(root, '**/*.%s' % ext), recursive=True)))
+
+        if self.paths:
+            self.__getitem__(0)
+
+    def __len__(self):  # noqa
+        return len(self.paths)
+
+    def __getitem__(self, idx):  # noqa
+        image = Image.open(self.paths[idx])
+        image = image.convert('RGB')  # fix ImageNet grayscale images
+        image = np.array(image)
+
+        target_size = 256 * 192
+        actual_ratio = image.shape[0] / image.shape[1]
+        target_width = round((target_size / actual_ratio) ** 0.5)
+        image = np.resize(image, (round(actual_ratio * target_width), target_width, image.shape[2]))
+
+        if self.transform is not None:
+            image = self.transform(image)
+        else:
+            image = to_tensor(image)
+        return image
+
+    def get_name(self, idx):
+        path = self.paths[idx]
+        file_name = os.path.basename(path)
+        img_names = file_name.split('_vis.')[0].split('___')
+        return img_names[self.img_idx > 0]
+
+
 class ImageDatasetSplit(Dataset):
     """An simple image dataset for calculating inception score and FID."""
 
@@ -371,4 +412,3 @@ def resize_keypoints(kpsx, kpsy, old_size, new_size, missing_value=-1):
         new_kps.append([int(kp * factor) if kp >= 0 else missing_value for kp in kps])
 
     return new_kps[::-1]
-
