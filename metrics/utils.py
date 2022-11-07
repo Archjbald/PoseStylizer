@@ -80,12 +80,15 @@ class ImageDatasetMulti(Dataset):
     def __getitem__(self, idx):  # noqa
         image = Image.open(self.paths[idx])
         image = image.convert('RGB')  # fix ImageNet grayscale images
-        image = np.array(image)
 
         target_size = 256 * 192
-        actual_ratio = image.shape[0] / image.shape[1]
+        # actual_ratio = image.shape[0] / image.shape[1]
+        actual_ratio = image.height / image.width
         target_width = round((target_size / actual_ratio) ** 0.5)
-        image = np.resize(image, (round(actual_ratio * target_width), target_width, image.shape[2]))
+        # image = image.resize((round(actual_ratio * target_width), target_width, image.shape[2]))
+        image = image.resize((target_width, round(actual_ratio * target_width)))
+
+        image = np.array(image)
 
         if self.transform is not None:
             image = self.transform(image)
