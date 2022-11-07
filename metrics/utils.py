@@ -3,6 +3,7 @@
 import os
 from typing import List, Union, Tuple, Optional
 from glob import glob
+from collections import OrderedDict
 
 import numpy as np
 import torch
@@ -58,14 +59,17 @@ class ImageDataset(Dataset):
 class ImageDatasetMulti(Dataset):
     """An simple image dataset for calculating inception score and FID."""
 
-    def __init__(self, roots, exts=['png', 'jpg', 'JPEG'], transform=None):
+    def __init__(self, roots, exts=['png', 'jpg', 'JPEG'], transform=None, num_images=None):
         self.paths = []
         self.transform = transform
         for root in roots:
             for ext in exts:
                 self.paths.extend(
                     list(glob(
-                        os.path.join(root, '**/*.%s' % ext), recursive=True)))
+                        os.path.join(root, '*.%s' % ext), recursive=True)))
+
+        self.paths = list(OrderedDict([(k, None) for k in self.paths]))
+        self.paths = self.paths[:num_images]
 
         if self.paths:
             self.__getitem__(0)
@@ -92,8 +96,7 @@ class ImageDatasetMulti(Dataset):
     def get_name(self, idx):
         path = self.paths[idx]
         file_name = os.path.basename(path)
-        img_names = file_name.split('_vis.')[0].split('___')
-        return img_names[self.img_idx > 0]
+        return file_name
 
 
 class ImageDatasetSplit(Dataset):

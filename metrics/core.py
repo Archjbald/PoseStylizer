@@ -20,7 +20,7 @@ def get_inception_feature(
     batch_size: int = 50,
     use_torch: bool = False,
     verbose: bool = False,
-    device: torch.device = torch.device('cuda:0'),
+    device: torch.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu'),
 ) -> Union[torch.FloatTensor, np.ndarray]:
     """Calculate Inception Score and FID.
 
@@ -62,8 +62,7 @@ def get_inception_feature(
         features = [np.empty((num_images, dim)) for dim in dims]
 
     pbar = tqdm(
-        total=num_images, dynamic_ncols=True, leave=False,
-        disable=not verbose, desc="get_inception_feature")
+        total=num_images, dynamic_ncols=True, leave=False, desc="get_inception_feature")
     looper = iter(images)
     start = 0
     while start < num_images:

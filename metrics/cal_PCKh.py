@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
+from tqdm import tqdm
 import torch
 import torchvision.transforms as trans
 
@@ -111,12 +112,17 @@ def get_pckh_from_dir(results_dir):
 
 def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
     # target_annotation = os.path.join(results_dir, ANNOTS_TARGETS)
-    tAnno = pd.read_csv(target_annotation, sep=':')
+
+    if not isinstance(target_annotation, pd.DataFrame):
+        tAnno = pd.read_csv(target_annotation, sep=':')
+    else:
+        tAnno = target_annotation
 
     nAll = 0
     nCorrect = 0
     alpha = 0.5
-    for i, img in enumerate(img_loader):
+    nbImg = 0
+    for i, img in enumerate(tqdm(img_loader)):
         hmaps = hpe_net(img.cuda() if torch.cuda.is_available() else img)[0]
         kps, vis = get_kps(hmaps)
         # hmaps_sized = trans.functional.resize(hmaps, gt_size)
@@ -127,10 +133,15 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
 
         pycords, pxcords = kps[0].t().tolist()
 
-        tValues = tAnno.query('name == "%s"' % (img_name)).values[0]
+        tValues = tAnno.query('name == "%s"' % (img_name))
+        if not len(tValues):
+            continue
+        else:
+            tValues = tValues.values[0]
+
         tycords = json.loads(tValues[1])
-        tycords = [v if k not in [5, 6, 7, 11, 12, 13, 15, 17] else MISSING_VALUE for k, v in
-                   enumerate(tycords)]  # list of numbers
+        # tycords = [v if k not in [5, 6, 7, 11, 12, 13, 15, 17] else MISSING_VALUE for k, v in
+        #            enumerate(tycords)]  # list of numbers
         txcords = json.loads(tValues[2])
 
         txcords, tycords = resize_keypoints(txcords, tycords, gt_size, list(img.shape[-2:]))
@@ -142,8 +153,10 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
         head_size = (xBox, yBox)
         nAll = nAll + valid_points(tycords)
         nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords, tycords, head_size, alpha)
+        nbImg += 1
 
     pckh = nCorrect * 1.0 / nAll
+    print(f'PCKh calculated for {nbImg} images.')
     # print(f'{nCorrect}/{nAll} : {pckh:.3f}%')
 
     return pckh, nCorrect, nAll

@@ -342,7 +342,7 @@ def mean_weights(model):
     for n, p in parameters.items():
         if '.weight' not in n:
             continue
-        key = '.'.join(n.split('.')[1:3])
+        key = '.'.join(n.split('.')[1:4])
         weights_sum[key] = weights_sum.setdefault(key, 0) + p.sum().item() / prod(p.shape)
         weights_num[key] = weights_num.setdefault(key, 0) + 1
 

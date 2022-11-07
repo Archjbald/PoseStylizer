@@ -21,4 +21,7 @@ def disp_tensor(tens):
     if array.shape[0] == 1:
         array = np.tile(array, (3, 1, 1))
     array = array.transpose((1, 2, 0))
-    Image.fromarray((array * 255).astype(np.uint8)).show()
+    array = (array * 255).astype(np.uint8)
+    Image.fromarray(array).show()
+
+    return array
