@@ -23,7 +23,16 @@ def eval_dataset(img_dirs):
     print('Loaded images : ', len(image_loader))
 
     name = ''
-    if "synthe" in img_dirs[0]:
+    if "TiCam" in img_dirs[0]:
+        target_annotation = None
+        name = 'ticam'
+        if "synthe" in img_dirs[0]:
+            gt_size = (512, 512)
+            name += "_real"
+        else:
+            gt_size = (720, 1280)
+            name += "_synthe"
+    elif "synthe" in img_dirs[0]:
         annot_paths = (
             'dataset/synthe_dripe/synthe-annotation-train.csv',
             'dataset/synthe_dripe/synthe-annotation-test.csv'
@@ -31,7 +40,7 @@ def eval_dataset(img_dirs):
         target_annotation = get_multi_annotations(annot_paths)
         gt_size = (240, 320)
         name = 'synthe'
-    elif "draiver" in img_dirs[0]:
+    elif "draiver" in img_dirs[0].lower():
         annot_paths = (
             'dataset/draiver_data/draiver-annotation_train.csv',
             'dataset/draiver_data/draiver-annotation_test.csv'
@@ -56,6 +65,10 @@ def eval_dataset(img_dirs):
 
         gt_size = (128, 64)
         name = 'market'
+    elif "Autob" in img_dirs[0]:
+        target_annotation = None
+        gt_size = (192, 256)
+        name = 'dripe'
     elif "sviro" in img_dirs[0]:
         target_annotation = None
         gt_size = (640, 960)
@@ -68,6 +81,8 @@ def eval_dataset(img_dirs):
     print('\nDataset images...')
     IS_input = get_inception_score(image_loader)
     print(f"IS input: {IS_input[0]}, std: {IS_input[1]}")
+
+    return
 
     from models.hpe.simple_bl import get_pose_net
     op = get_pose_net()

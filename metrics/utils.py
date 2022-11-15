@@ -4,6 +4,7 @@ import os
 from typing import List, Union, Tuple, Optional
 from glob import glob
 from collections import OrderedDict
+import random
 
 import numpy as np
 import torch
@@ -17,6 +18,8 @@ from core import (
     calculate_inception_score,
     calculate_frechet_inception_distance,
     torch_cov)
+
+random.seed(123456)
 
 
 class ImageDataset(Dataset):
@@ -69,7 +72,8 @@ class ImageDatasetMulti(Dataset):
                         os.path.join(root, '*.%s' % ext), recursive=True)))
 
         self.paths = list(OrderedDict([(k, None) for k in self.paths]))
-        self.paths = self.paths[:num_images]
+        if num_images is not None:
+            self.paths = random.sample(self.paths, num_images)
 
         if self.paths:
             self.__getitem__(0)

@@ -1,6 +1,10 @@
 def CreateDataLoader(opt):
-    from data.custom_dataset_data_loader import CustomDatasetDataLoader
-    data_loader = CustomDatasetDataLoader()
+    if '_multi' in opt.dataset_mode:
+        from data.custom_dataset_data_loader import CustomDatasetDataLoaderMulti
+        data_loader = CustomDatasetDataLoaderMulti()
+    else:
+        from data.custom_dataset_data_loader import CustomDatasetDataLoader
+        data_loader = CustomDatasetDataLoader()
     print(data_loader.name())
 
     data_loader.initialize(opt)

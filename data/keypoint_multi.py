@@ -54,8 +54,8 @@ class KeyDatasetMulti(BaseDataset):
         print(f'Multi dataset : loaded {len(self.idxs)} pairs')
 
     def __getitem__(self, index):
-        idx = self.idxs[index]
-        return self.datasets[idx[0]][idx[1]]
+        # idx = self.idxs[index]
+        return self.datasets[index[0]][index[1]]
 
     def name(self):
         return 'KeyDatasetMulti'
