@@ -123,6 +123,10 @@ class KeyDataset(BaseDataset):
             trans = transforms.Resize((P1.shape[-2], P1.shape[-1]))
             with torch.no_grad():
                 BP1 = trans(BP1)
+
+        if not P2.shape[-2:] == BP2.shape[-2:]:
+            trans = transforms.Resize((P2.shape[-2], P2.shape[-1]))
+            with torch.no_grad():
                 BP2 = trans(BP2)
 
         height = P1.shape[-2]

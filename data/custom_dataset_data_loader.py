@@ -63,11 +63,11 @@ class CustomDatasetDataLoaderMulti(CustomDatasetDataLoader):
         self.dataset = CreateDataset(opt)
         g = torch.Generator()
         g.manual_seed(0)
-        sampler = BatchSamplerMulti(self.dataset, opt.batchSize, drop_last=True)
+        sampler = BatchSamplerMulti(self.dataset, opt.batchSize, drop_last=True, opt=opt)
 
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
-            sampler=sampler,
+            batch_sampler=sampler,
             worker_init_fn=seed_worker,
             generator=g,
             num_workers=int(opt.nThreads))
