@@ -53,6 +53,9 @@ class BaseOptions():
         self.parser.add_argument('--no_rotate', action='store_true',
                                  help='if specified, do not rotate the images for data augmentation')
 
+        self.parser.add_argument('--equalize', action='store_true',
+                                 help='if specified, equalize the histogram of input images')
+
         self.parser.add_argument('--init_type', type=str, default='normal',
                                  help='network initialization [normal|xavier|kaiming|orthogonal]')
 

@@ -6,6 +6,8 @@ from PIL import Image
 import numpy as np
 import torchvision.transforms as transforms
 
+import torchvision.transforms.functional as functionnal
+
 
 class BaseDataset(data.Dataset):
     def __init__(self):

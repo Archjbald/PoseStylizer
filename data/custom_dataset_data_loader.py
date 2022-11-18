@@ -63,8 +63,12 @@ class CustomDatasetDataLoaderMulti(CustomDatasetDataLoader):
         self.dataset = CreateDataset(opt)
         g = torch.Generator()
         g.manual_seed(0)
-        sampler = BatchSamplerMulti(self.dataset, opt.batchSize, drop_last=True, opt=opt)
+        nb_img_ratio = round(round(opt.batchSize * opt.ratio_multi) / (len(self.dataset.ratios) - 1) - 0.5)
+        self.nb_imgs = [nb_img_ratio for _ in self.dataset.ratios[1:]]
+        self.nb_imgs.insert(0, opt.batchSize - sum(self.nb_imgs))
+        sampler = BatchSamplerMulti(self.dataset, opt.batchSize, self.nb_imgs, drop_last=True, opt=opt)
 
+        print("Hello")
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_sampler=sampler,
@@ -72,12 +76,26 @@ class CustomDatasetDataLoaderMulti(CustomDatasetDataLoader):
             generator=g,
             num_workers=int(opt.nThreads))
 
+    def __len__(self):
+        limitant_dataset = 0
+        limitant_value = self.dataset.total_size / 1E-6
+
+        for d, nb in self.nb_imgs:
+            if not nb:
+                continue
+            value = self.dataset.datasets[d].size / nb
+            if value < limitant_value:
+                limitant_value = value
+                limitant_dataset = d
+
+        return min(len(self.dataset.datasets[limitant_dataset]), self.opt.max_dataset_size)
+
 
 class BatchSamplerMulti(torch.utils.data.sampler.BatchSampler):
-    def __init__(self, sampler, batch_size, drop_last, opt):
+    def __init__(self, sampler, batch_size, nb_imgs, drop_last, opt):
         super(BatchSamplerMulti, self).__init__(sampler, batch_size, drop_last)
-        self.ratios = self.sampler.ratios
-        assert len(self.ratios) >= 2
+        self.nb_imgs = nb_imgs
+        assert len(self.nb_imgs) >= 2
         sub_sampler = (torch.utils.data.sampler.SequentialSampler if opt.serial_batches
                        else torch.utils.data.sampler.RandomSampler)
 
@@ -87,13 +105,11 @@ class BatchSamplerMulti(torch.utils.data.sampler.BatchSampler):
     def __iter__(self):
         batch = []
         self.sub_iterators = [iter(sub_s) for sub_s in self.sub_samplers]
+        set_index = 0
         for idx in range(len(self.sampler)):
-            batch_ratio = (idx % self.batch_size) / self.batch_size
-            for set_index, ratio in enumerate(self.ratios):
-                if batch_ratio < ratio:
-                    break
-                else:
-                    batch_ratio -= ratio
+            while len(batch) >= sum(self.nb_imgs[:set_index + 1]):
+                set_index += 1
+
             batch.append((set_index, self.sub_iterators[set_index].__next__()))
 
             if len(batch) == self.batch_size:

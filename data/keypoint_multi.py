@@ -6,9 +6,10 @@ import random
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+import torchvision.transforms.functional
 
 from data.base_dataset import BaseDataset
-from data.keypoint import KeyDataset
+from data.keypoint import KeyDataset, flip_keypoints
 from data.pose_transform import make_gaussian_limb_masks
 
 
@@ -22,15 +23,16 @@ class KeyDatasetMulti(BaseDataset):
 
     def initialize(self, opt):
         self.opt = opt
-        for is_real, (root, pairLst) in enumerate([
-            ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-train.csv'),
-            ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-train.csv')
+        for is_real, (root, pairLst, custom_transform) in enumerate([
+            ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-train.csv', None),
+            ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-train.csv',
+             DraiverTransform(equalize=opt.equalize))
         ]):
             opt_set = Namespace(**vars(opt))
             opt_set.dataroot = root
             opt_set.pairLst = pairLst
             self.datasets.append(KeyDataset())
-            self.datasets[-1].initialize(opt_set)
+            self.datasets[-1].initialize(opt_set, custom_transform=custom_transform)
             self.total_size += self.datasets[-1].size
             self.idxs += [(len(self.datasets) - 1, i) for i in range(self.datasets[-1].size)]
 
@@ -47,7 +49,7 @@ class KeyDatasetMulti(BaseDataset):
                 self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
                               random.sample(range(dataset.size),
                                             int(synthe_size * opt.ratio_multi / (
-                                                        1 - opt.ratio_multi) * dataset.size / real_size))]
+                                                    1 - opt.ratio_multi) * dataset.size / real_size))]
             if not self.opt.debug:
                 random.shuffle(self.idxs)
 
@@ -67,8 +69,31 @@ class KeyDatasetMulti(BaseDataset):
             return self.total_size
 
 
-def flip_keypoints(bp):
-    bp = np.array(bp[:, ::-1, :])
-    idxs = [0, 1, 5, 6, 7, 2, 3, 4, 11, 12, 13, 8, 9, 10, 15, 14, 17, 16] + list(range(18, bp.shape[-1]))
-    bp = bp[:, :, idxs]
-    return bp
+class DraiverTransform:
+    def __init__(self, equalize):
+        self.equalize = equalize
+
+    def __call__(self, x):
+        if isinstance(x, np.ndarray):
+            h, w, c = x.shape
+            x = torch.Tensor(x)
+            x = x.moveaxis(-1, 0)
+        else:
+            w, h = x.size
+            c = len(x.mode)
+
+        if self.equalize and c <= 3:
+            x = transforms.functional.equalize(x)
+        x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
+        x = transforms.functional.rotate(x, -42)
+
+        if c <= 3:
+            # x = ((x + 1) * 128).to(torch.uint8)
+            # x = transforms.functional.equalize(x)
+            # x = Image.fromarray(x)
+            pass
+        else:
+            x = x.moveaxis(0, -1)
+            x = x.numpy()
+
+        return x

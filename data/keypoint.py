@@ -15,7 +15,7 @@ from data.pose_transform import make_gaussian_limb_masks
 
 
 class KeyDataset(BaseDataset):
-    def initialize(self, opt):
+    def initialize(self, opt, custom_transform=None):
         self.opt = opt
         self.root = opt.dataroot
         self.dir_P = os.path.join(opt.dataroot, opt.phase)  # person images
@@ -23,6 +23,7 @@ class KeyDataset(BaseDataset):
 
         self.init_categories(opt.pairLst)
         self.transform = get_transform(opt)
+        self.custom_transform = custom_transform if custom_transform else lambda x: x
 
     def init_categories(self, pairLst, annoLst=None):
         pairs_file_train = pd.read_csv(pairLst)
@@ -32,6 +33,9 @@ class KeyDataset(BaseDataset):
         for i in range(self.size):
             pair = [pairs_file_train.iloc[i]['from'], pairs_file_train.iloc[i]['to']]
             self.pairs.append(pair)
+            if self.opt.debug and i > 1000:
+                break
+        self.size = len(self.pairs)
 
         if self.opt.phase == 'train' and not self.opt.debug:
             random.shuffle(self.pairs)
@@ -87,6 +91,12 @@ class KeyDataset(BaseDataset):
         # P2_img = Image.new('RGB', P2_img.size)
         # BP2_img = np.empty_like(BP2_img)
         # use flip
+
+        P1_img = self.custom_transform(P1_img)
+        P2_img = self.custom_transform(P2_img)
+        BP1_img = self.custom_transform(BP1_img)
+        BP2_img = self.custom_transform(BP2_img)
+
         if self.opt.phase == 'train':
             # print ('use_flip ...')
             flip_random = random.uniform(0, 1)

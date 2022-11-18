@@ -20,8 +20,7 @@ def disp_tensor(tens):
         array = array[None]
     if array.shape[0] == 1:
         array = np.tile(array, (3, 1, 1))
+    if not array.dtype == np.uint8:
+        array = (array * 255).astype(np.uint8)
     array = array.transpose((1, 2, 0))
-    array = (array * 255).astype(np.uint8)
     Image.fromarray(array).show()
-
-    return array
