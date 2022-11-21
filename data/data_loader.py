@@ -1,7 +1,11 @@
 def CreateDataLoader(opt):
     if '_multi' in opt.dataset_mode:
-        from data.custom_dataset_data_loader import CustomDatasetDataLoaderMulti
-        data_loader = CustomDatasetDataLoaderMulti()
+        if opt.phase == 'train':
+            from data.custom_dataset_data_loader import CustomDatasetDataLoaderMulti
+            data_loader = CustomDatasetDataLoaderMulti()
+        else:
+            from data.custom_dataset_data_loader import CustomDatasetDataLoader
+            data_loader = CustomDatasetDataLoader()
     else:
         from data.custom_dataset_data_loader import CustomDatasetDataLoader
         data_loader = CustomDatasetDataLoader()

@@ -24,7 +24,8 @@ class KeyDatasetMulti(BaseDataset):
     def initialize(self, opt):
         self.opt = opt
         for is_real, (root, pairLst, custom_transform) in enumerate([
-            ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv', None),
+            ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
+             transforms.functional.equalize if opt.equalize else None),
             ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize))
         ]):

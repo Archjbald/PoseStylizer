@@ -11,12 +11,8 @@ def CreateDataset(opt):
         from data.keypoint import KeyDataset
         dataset = KeyDataset()
     elif opt.dataset_mode == 'keypoint_multi':
-        if opt.phase == 'train':
-            from data.keypoint_multi import KeyDatasetMulti
-            dataset = KeyDatasetMulti()
-        else:
-            from data.keypoint import KeyDataset
-            dataset = KeyDataset()
+        from data.keypoint_multi import KeyDatasetMulti
+        dataset = KeyDatasetMulti()
     elif opt.dataset_mode == 'keypoint_segmentation':
         from data.keypoint_segmentation import KeySegDataset
         dataset = KeySegDataset()
