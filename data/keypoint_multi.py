@@ -25,7 +25,7 @@ class KeyDatasetMulti(BaseDataset):
         self.opt = opt
         for is_real, (root, pairLst, custom_transform) in enumerate([
             ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
-             transforms.functional.equalize if opt.equalize else None),
+             DraiverTransform(equalize=opt.equalize, rotate_angle=42)),
             ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize))
         ]):
@@ -72,8 +72,9 @@ class KeyDatasetMulti(BaseDataset):
 
 
 class DraiverTransform:
-    def __init__(self, equalize):
+    def __init__(self, equalize, rotate_angle=0):
         self.equalize = equalize
+        self.rotate_angle = rotate_angle
 
     def __call__(self, x):
         if isinstance(x, np.ndarray):
@@ -87,7 +88,7 @@ class DraiverTransform:
         if self.equalize and c <= 3:
             x = transforms.functional.equalize(x)
         x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
-        x = transforms.functional.rotate(x, -42)
+        x = transforms.functional.rotate(x, self.rotate_angle)
 
         if c <= 3:
             # x = ((x + 1) * 128).to(torch.uint8)
