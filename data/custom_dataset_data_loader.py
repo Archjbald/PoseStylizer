@@ -114,5 +114,6 @@ class BatchSamplerMulti(torch.utils.data.sampler.BatchSampler):
             if len(batch) == self.batch_size:
                 yield batch
                 batch = []
+                set_index = 0
         if len(batch) > 0 and not self.drop_last:
             yield batch
