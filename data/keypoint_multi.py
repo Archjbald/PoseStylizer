@@ -57,7 +57,7 @@ class KeyDatasetMulti(BaseDataset):
                                                 1 - opt.ratio_multi) * dataset.size / real_size))]
 
         self.ratios = [sum([ix[0] == i for ix in self.idxs]) / len(self.idxs) for i in range(len(self.datasets))]
-        if not self.opt.debug and opt.phase.train == 'train':
+        if not self.opt.debug and opt.phase == 'train':
             random.shuffle(self.idxs)
         else:
             max_size_ratios = [round(opt.max_dataset_size * ratio) for ratio in self.ratios]
