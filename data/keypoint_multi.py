@@ -31,7 +31,7 @@ class KeyDatasetMulti(BaseDataset):
             ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize, rotate_angle=42)),
             ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-{}.csv',
-             DraiverTransform(equalize=opt.equalize))
+             DraiverTransform(equalize=opt.equalize, color_swap=opt.color_swap if opt.phase == 'train' else False))
         ]):
             opt_set = Namespace(**vars(opt))
             opt_set.dataroot = root
@@ -48,7 +48,7 @@ class KeyDatasetMulti(BaseDataset):
         if (1 - opt.ratio_multi) < ratios[0]:
             self.idxs = [(0, i) for i in random.sample(range(self.datasets[0].size),
                                                        int(real_size * (1 - opt.ratio_multi) / opt.ratio_multi))]
-            self.idxs += [i for dataset in self.datasets[1:] for i in range(dataset.size)]
+            self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in range(dataset.size)]
         elif (1 - opt.ratio_multi) > ratios[0]:
             self.idxs = [(0, i) for i in range(self.datasets[0].size)]
             self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
@@ -88,9 +88,11 @@ class KeyDatasetMulti(BaseDataset):
 
 
 class DraiverTransform:
-    def __init__(self, equalize, rotate_angle=0):
+    def __init__(self, equalize=False, color_swap=False, rotate_angle=0, proba=1.):
         self.equalize = equalize
+        self.color_swap = color_swap
         self.rotate_angle = rotate_angle
+        self.proba = proba
 
     def __call__(self, x):
         if isinstance(x, np.ndarray):
@@ -103,6 +105,11 @@ class DraiverTransform:
 
         if self.equalize and c <= 3:
             x = transforms.functional.equalize(x)
+        if self.color_swap and c == 3 and random.random() <= self.proba:
+            channels = [0, 1, 2]
+            random.shuffle(channels)
+            x = Image.fromarray(np.array(x)[:, :, channels])
+
         x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
         x = transforms.functional.rotate(x, self.rotate_angle)
 
