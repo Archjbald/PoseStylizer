@@ -170,6 +170,7 @@ def main():
 
     val_size = round(100 / opt.batchSize) * opt.batchSize
     val_opt = set_test_opt(Namespace(**vars(opt)), max_dataset_size=val_size)
+    val_opt.phase = 'val'
     val_data_loader = CreateDataLoader(val_opt)
     val_dataset = val_data_loader.load_data()
 

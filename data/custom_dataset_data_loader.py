@@ -68,7 +68,6 @@ class CustomDatasetDataLoaderMulti(CustomDatasetDataLoader):
         self.nb_imgs.insert(0, opt.batchSize - sum(self.nb_imgs))
         sampler = BatchSamplerMulti(self.dataset, opt.batchSize, self.nb_imgs, drop_last=True, opt=opt)
 
-        print("Hello")
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_sampler=sampler,

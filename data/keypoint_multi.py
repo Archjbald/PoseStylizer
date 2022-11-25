@@ -23,6 +23,10 @@ class KeyDatasetMulti(BaseDataset):
 
     def initialize(self, opt):
         self.opt = opt
+        phase = opt.phase
+        if phase == 'val':
+            opt.phase = 'test'
+            opt.ratio_multi = 1 / 5
         for is_real, (root, pairLst, custom_transform) in enumerate([
             ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize, rotate_angle=42)),
@@ -37,22 +41,34 @@ class KeyDatasetMulti(BaseDataset):
             self.total_size += self.datasets[-1].size
             self.idxs += [(len(self.datasets) - 1, i) for i in range(self.datasets[-1].size)]
 
-        self.ratios = [data.size / self.total_size for data in self.datasets]
+        ratios = [data.size / self.total_size for data in self.datasets]
         # if self.opt.phase == 'train':
         synthe_size = self.datasets[0].size
         real_size = sum([dataset.size for dataset in self.datasets[1:]])
-        if (1 - opt.ratio_multi) < self.ratios[0]:
+        if (1 - opt.ratio_multi) < ratios[0]:
             self.idxs = [(0, i) for i in random.sample(range(self.datasets[0].size),
                                                        int(real_size * (1 - opt.ratio_multi) / opt.ratio_multi))]
             self.idxs += [i for dataset in self.datasets[1:] for i in range(dataset.size)]
-        elif (1 - opt.ratio_multi) > self.ratios[0]:
+        elif (1 - opt.ratio_multi) > ratios[0]:
             self.idxs = [(0, i) for i in range(self.datasets[0].size)]
             self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
                           random.sample(range(dataset.size),
                                         int(synthe_size * opt.ratio_multi / (
                                                 1 - opt.ratio_multi) * dataset.size / real_size))]
-        if not self.opt.debug:
+
+        self.ratios = [sum([ix[0] == i for ix in self.idxs]) / len(self.idxs) for i in range(len(self.datasets))]
+        if not self.opt.debug and opt.phase.train == 'train':
             random.shuffle(self.idxs)
+        else:
+            max_size_ratios = [round(opt.max_dataset_size * ratio) for ratio in self.ratios]
+            sorted_idx = []
+            end_sorted_idx = []
+            for k, mr in enumerate(max_size_ratios):
+                sorted_idx += self.idxs[int(len(self.idxs) * sum(self.ratios[:k])):
+                                        int(len(self.idxs) * sum(self.ratios[:k])) + mr]
+                end_sorted_idx += self.idxs[int(len(self.idxs) * sum(self.ratios[:k])) + mr:
+                                            int(len(self.idxs) * sum(self.ratios[:k + 1]))]
+            self.idxs = sorted_idx + end_sorted_idx
 
         print(f'Multi dataset : loaded {len(self.idxs)} pairs')
 
