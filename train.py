@@ -160,6 +160,12 @@ def train(opt, model, train_dataset, val_dataset):
 
         model.update_learning_rate()
 
+        if '_multi' in opt.dataset_mode and opt.isTrain:
+            ratio_step = (opt.niter + opt.niter_decay) // len(opt.ratio_multi_steps)
+            if not epoch % ratio_step:
+                opt.ratio_multi = opt.ratio_multi_steps[epoch // ratio_step]
+                train_dataset.update()
+
 
 def set_val_opt(opt):
     val_size = round(100 / opt.batchSize) * opt.batchSize

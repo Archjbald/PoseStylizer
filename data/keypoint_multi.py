@@ -41,40 +41,48 @@ class KeyDatasetMulti(BaseDataset):
             self.total_size += self.datasets[-1].size
             self.idxs += [(len(self.datasets) - 1, i) for i in range(self.datasets[-1].size)]
 
+        self.idxs_rationed = []
+        self.ration()
+
+        print(f'Multi dataset : loaded {len(self.idxs_rationed)} pairs')
+
+    def ration(self, ratio_multi=None):
+        if ratio_multi is not None:
+            self.opt.ratio_multi = ratio_multi
         ratios = [data.size / self.total_size for data in self.datasets]
         # if self.opt.phase == 'train':
         synthe_size = self.datasets[0].size
         real_size = sum([dataset.size for dataset in self.datasets[1:]])
-        if (1 - opt.ratio_multi) < ratios[0]:
-            self.idxs = [(0, i) for i in random.sample(range(self.datasets[0].size),
-                                                       int(real_size * (1 - opt.ratio_multi) / opt.ratio_multi))]
-            self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in range(dataset.size)]
-        elif (1 - opt.ratio_multi) > ratios[0]:
-            self.idxs = [(0, i) for i in range(self.datasets[0].size)]
-            self.idxs += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
-                          random.sample(range(dataset.size),
-                                        int(synthe_size * opt.ratio_multi / (
-                                                1 - opt.ratio_multi) * dataset.size / real_size))]
+        if (1 - self.opt.ratio_multi) < ratios[0]:
+            self.idxs_rationed = [(0, i) for i in random.sample(
+                range(self.datasets[0].size), int(real_size * (1 - self.opt.ratio_multi) / self.opt.ratio_multi))]
+            self.idxs_rationed += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
+                                   range(dataset.size)]
+        elif (1 - self.opt.ratio_multi) > ratios[0]:
+            self.idxs_rationed = [(0, i) for i in range(self.datasets[0].size)]
+            self.idxs_rationed += [(d + 1, i) for d, dataset in enumerate(self.datasets[1:]) for i in
+                                   random.sample(range(dataset.size),
+                                                 int(synthe_size * self.opt.ratio_multi / (
+                                                         1 - self.opt.ratio_multi) * dataset.size / real_size))]
 
-        self.ratios = [sum([ix[0] == i for ix in self.idxs]) / len(self.idxs) for i in range(len(self.datasets))]
-        if not self.opt.debug and opt.phase == 'train':
-            random.shuffle(self.idxs)
+        self.ratios = [sum([ix[0] == i for ix in self.idxs_rationed]) / len(self.idxs_rationed) for i in
+                       range(len(self.datasets))]
+        if not self.opt.debug and self.opt.phase == 'train':
+            random.shuffle(self.idxs_rationed)
         else:
-            max_size_ratios = [round(opt.max_dataset_size * ratio) for ratio in self.ratios]
+            max_size_ratios = [round(self.opt.max_dataset_size * ratio) for ratio in self.ratios]
             sorted_idx = []
             end_sorted_idx = []
             for k, mr in enumerate(max_size_ratios):
-                sorted_idx += self.idxs[int(len(self.idxs) * sum(self.ratios[:k])):
-                                        int(len(self.idxs) * sum(self.ratios[:k])) + mr]
-                end_sorted_idx += self.idxs[int(len(self.idxs) * sum(self.ratios[:k])) + mr:
-                                            int(len(self.idxs) * sum(self.ratios[:k + 1]))]
-            self.idxs = sorted_idx + end_sorted_idx
-
-        print(f'Multi dataset : loaded {len(self.idxs)} pairs')
+                sorted_idx += self.idxs_rationed[int(len(self.idxs_rationed) * sum(self.ratios[:k])):
+                                                 int(len(self.idxs_rationed) * sum(self.ratios[:k])) + mr]
+                end_sorted_idx += self.idxs_rationed[int(len(self.idxs_rationed) * sum(self.ratios[:k])) + mr:
+                                                     int(len(self.idxs_rationed) * sum(self.ratios[:k + 1]))]
+            self.idxs_rationed = sorted_idx + end_sorted_idx
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            index = self.idxs[index]
+            index = self.idxs_rationed[index]
         return self.datasets[index[0]][index[1]]
 
     def name(self):

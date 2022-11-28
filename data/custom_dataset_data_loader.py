@@ -63,17 +63,24 @@ class CustomDatasetDataLoaderMulti(CustomDatasetDataLoader):
         self.dataset = CreateDataset(opt)
         g = torch.Generator()
         g.manual_seed(0)
-        nb_img_ratio = round(round(opt.batchSize * opt.ratio_multi) / (len(self.dataset.ratios) - 1) - 0.5)
-        self.nb_imgs = [nb_img_ratio for _ in self.dataset.ratios[1:]]
-        self.nb_imgs.insert(0, opt.batchSize - sum(self.nb_imgs))
-        sampler = BatchSamplerMulti(self.dataset, opt.batchSize, self.nb_imgs, drop_last=True, opt=opt)
+        self.sampler = None
+        self.update()
+        self.sampler = BatchSamplerMulti(self.dataset, self.opt.batchSize, self.nb_imgs, drop_last=True, opt=self.opt)
 
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
-            batch_sampler=sampler,
+            batch_sampler=self.sampler,
             worker_init_fn=seed_worker,
             generator=g,
             num_workers=int(opt.nThreads))
+
+    def update(self):
+        self.dataset.ration()
+        nb_img_ratio = round(round(self.opt.batchSize * self.opt.ratio_multi) / (len(self.dataset.ratios) - 1) - 0.5)
+        self.nb_imgs = [nb_img_ratio for _ in self.dataset.ratios[1:]]
+        self.nb_imgs.insert(0, self.opt.batchSize - sum(self.nb_imgs))
+        if self.sampler is not None:
+            self.sampler.nb_imgs = self.nb_imgs
 
     def __len__(self):
         limitant_dataset = 0

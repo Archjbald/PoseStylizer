@@ -63,7 +63,8 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--win_size', type=int, default=11, help='the window size of SSIM conputation')
         self.parser.add_argument('--win_sigma', type=float, default=1.5, help='the window size of SSIM conputation')
 
-        self.parser.add_argument('--ratio_multi', type=float, default=1 / 6, help='Ratio of real data in multi dataset')
+        self.parser.add_argument('--ratio_multi', type=float, default=0.167, help='Ratio of real data in multi dataset')
+        self.parser.add_argument('--ratio_multi_steps', type=str, default="", help='Steps for ratio of real data')
         self.parser.add_argument('--color_swap', action='store_true',
                                  help='Randomly swap channels for data augment of real datas')
 
@@ -105,5 +106,10 @@ class TrainOptions(BaseOptions):
             self.opt.epoch_size = (self.opt.epoch_size // self.opt.batchSize + 1) * self.opt.batchSize
 
         self.opt.patch_sizes = [int(k) for k in self.opt.patch_sizes.split(',')]
+        if self.opt.ratio_multi_steps:
+            self.opt.ratio_multi_steps = [float(k) for k in self.opt.ratio_multi_steps.split(',')]
+            self.opt.ratio_multi = self.opt.ratio_multi_steps[0]
+        else:
+            self.opt.ratio_multi_steps = [self.opt.ratio_multi]
 
         return self.opt
