@@ -110,8 +110,9 @@ class DraiverTransform:
             random.shuffle(channels)
             x = Image.fromarray(np.array(x)[:, :, channels])
 
-        x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
-        x = transforms.functional.rotate(x, self.rotate_angle)
+        if self.rotate_angle:
+            x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
+            x = transforms.functional.rotate(x, self.rotate_angle)
 
         if c <= 3:
             # x = ((x + 1) * 128).to(torch.uint8)

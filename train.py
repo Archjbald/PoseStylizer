@@ -161,6 +161,14 @@ def train(opt, model, train_dataset, val_dataset):
         model.update_learning_rate()
 
 
+def set_val_opt(opt):
+    val_size = round(100 / opt.batchSize) * opt.batchSize
+    val_opt = set_test_opt(Namespace(**vars(opt)), max_dataset_size=val_size)
+    val_opt.phase = 'val'
+    val_opt.random = True
+    return val_opt
+
+
 def main():
     opt = TrainOptions().parse()
 
@@ -168,9 +176,7 @@ def main():
     train_data_loader = CreateDataLoader(opt)
     train_dataset = train_data_loader.load_data()
 
-    val_size = round(100 / opt.batchSize) * opt.batchSize
-    val_opt = set_test_opt(Namespace(**vars(opt)), max_dataset_size=val_size)
-    val_opt.phase = 'val'
+    val_opt = set_val_opt(opt)
     val_data_loader = CreateDataLoader(val_opt)
     val_dataset = val_data_loader.load_data()
 
