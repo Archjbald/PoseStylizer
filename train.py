@@ -162,7 +162,7 @@ def train(opt, model, train_dataset, val_dataset):
 
         if '_multi' in opt.dataset_mode and opt.isTrain:
             ratio_step = (opt.niter + opt.niter_decay) // len(opt.ratio_multi_steps)
-            if not epoch % ratio_step:
+            if epoch < (opt.niter + opt.niter_decay) and not epoch % ratio_step:
                 opt.ratio_multi = opt.ratio_multi_steps[epoch // ratio_step]
                 train_dataset.update()
 
