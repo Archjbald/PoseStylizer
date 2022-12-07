@@ -196,20 +196,30 @@ def print_network(net):
 # Classes
 ##############################################################################    
 
+
+class WassersteinLoss:
+    def __call__(self, input, target_is_real):
+        return torch.mean(input) * (-1 if not target_is_real else 1)
+
+
 # Defines the GAN loss which uses either LSGAN or the regular GAN.
 # When LSGAN is used, it is basically same as MSELoss,
 # but it abstracts away the need to create the target label tensor
 # that has the same size as the input
 class GANLoss(nn.Module):
     def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0,
-                 tensor=torch.FloatTensor):
+                 tensor=torch.FloatTensor, use_wgan=False):
         super(GANLoss, self).__init__()
         self.real_label = target_real_label
         self.fake_label = target_fake_label
         self.real_label_var = None
         self.fake_label_var = None
         self.Tensor = tensor
-        if use_lsgan:
+        self.use_target = True
+        if use_wgan:
+            self.use_target = False
+            self.loss = WassersteinLoss()
+        elif use_lsgan:
             self.loss = nn.MSELoss()
         else:
             self.loss = nn.BCELoss()
@@ -233,8 +243,11 @@ class GANLoss(nn.Module):
         return target_tensor
 
     def __call__(self, input, target_is_real):
-        target_tensor = self.get_target_tensor(input, target_is_real)
-        return self.loss(input, target_tensor)
+        if self.use_target:
+            target_tensor = self.get_target_tensor(input, target_is_real)
+            return self.loss(input, target_tensor)
+        else:
+            return self.loss(input, target_is_real)
 
 
 # Define a resnet block

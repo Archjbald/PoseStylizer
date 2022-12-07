@@ -59,7 +59,7 @@ class TransferModel(BaseModel):
             self.fake_PP_pool = ImagePool(opt.pool_size)
             self.fake_PB_pool = ImagePool(opt.pool_size)
             # define loss functions
-            self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, tensor=self.Tensor)
+            self.criterionGAN = networks.GANLoss(use_lsgan=not opt.no_lsgan, use_wgan=opt.use_wgan, tensor=self.Tensor)
 
             if opt.L1_type == 'origin':
                 self.criterionL1 = torch.nn.L1Loss()
@@ -271,6 +271,7 @@ class TransferModel(BaseModel):
                 self.optimizer_D_PB.zero_grad()
                 self.backward_D_PB(backward=backward)
                 self.optimizer_D_PB.step()
+
 
     def get_current_errors(self):
         ret_errors = OrderedDict([('pair_L1loss', self.pair_L1loss)])

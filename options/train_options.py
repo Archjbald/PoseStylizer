@@ -40,6 +40,9 @@ class TrainOptions(BaseOptions):
         self.parser.add_argument('--lambda_GAN', type=float, default=5.0, help='weight of GAN loss')
         self.parser.add_argument('--lambda_SSIM', type=float, default=10.0, help='weight of SSIM loss')
 
+        self.parser.add_argument('--use_wgan', action='store_true',
+                                 help='Use wassertein GAN loss')
+
         self.parser.add_argument('--epoch_size', type=int, default=4000,
                                  help='Number of image pooled in the dataset for each epcoh')
         self.parser.add_argument('--pool_size', type=int, default=50,
