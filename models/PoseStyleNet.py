@@ -208,6 +208,9 @@ class TransferModel(BaseModel):
             if self.opt.with_D_PP:
                 pair_GANloss = self.loss_G_GAN_PP * self.opt.lambda_GAN
 
+        if self.opt.use_wgan and self.opt.no_lsgan:
+            pair_GANloss = torch.mean(pair_GANloss)
+
         if self.opt.with_D_PB or self.opt.with_D_PP:
             pair_loss = pair_L1loss + pair_GANloss
         else:
@@ -230,6 +233,8 @@ class TransferModel(BaseModel):
         # Combined loss
         loss_D = (loss_D_real + loss_D_fake)
         if self.opt.use_wgan:
+            if self.opt.no_lsgan:
+                loss_D = torch.mean(loss_D)
             loss_D += networks.WassersteinLoss.gradient_penalty(netD, real.data, fake.data)
         else:
             loss_D *= 0.5

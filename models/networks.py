@@ -198,8 +198,12 @@ def print_network(net):
 
 
 class WassersteinLoss:
+    def __init__(self, mean=True):
+        self.mean = mean
+
     def __call__(self, input, target_is_real):
-        return torch.mean(input) * (-1 if target_is_real else 1)
+        w_value = torch.mean(input) if self.mean else input
+        return w_value * (-1 if target_is_real else 1)
 
     @classmethod
     def gradient_penalty(cls, D, real_samples, fake_samples, lambda_gp=10):
@@ -241,7 +245,7 @@ class GANLoss(nn.Module):
         self.use_target = True
         if use_wgan:
             self.use_target = False
-            self.loss = WassersteinLoss()
+            self.loss = WassersteinLoss(mean=use_lsgan)
         elif use_lsgan:
             self.loss = nn.MSELoss()
         else:
