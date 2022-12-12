@@ -23,7 +23,7 @@ class KeyDataset(BaseDataset):
 
         self.init_categories(opt.pairLst)
         self.transform = get_transform(opt)
-        self.custom_transform = custom_transform if custom_transform else lambda x: x
+        self.custom_transform = custom_transform if custom_transform else lambda x, name: x
 
     def init_categories(self, pairLst, annoLst=None):
         pairs_file_train = pd.read_csv(pairLst)
@@ -84,10 +84,10 @@ class KeyDataset(BaseDataset):
         # BP2_img = np.empty_like(BP2_img)
         # use flip
 
-        P1_img = self.custom_transform(P1_img)
-        P2_img = self.custom_transform(P2_img)
-        BP1_img = self.custom_transform(BP1_img)
-        BP2_img = self.custom_transform(BP2_img)
+        P1_img = self.custom_transform(P1_img, P1_name)
+        P2_img = self.custom_transform(P2_img, P2_name)
+        BP1_img = self.custom_transform(BP1_img, P1_name)
+        BP2_img = self.custom_transform(BP2_img, P2_name)
 
         if self.opt.phase == 'train':
             # print ('use_flip ...')

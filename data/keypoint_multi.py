@@ -102,7 +102,7 @@ class DraiverTransform:
         self.rotate_angle = rotate_angle
         self.proba = proba
 
-    def __call__(self, x):
+    def __call__(self, x, name=""):
         if isinstance(x, np.ndarray):
             h, w, c = x.shape
             x = torch.Tensor(x)
@@ -118,7 +118,7 @@ class DraiverTransform:
             random.shuffle(channels)
             x = Image.fromarray(np.array(x)[:, :, channels])
 
-        if self.rotate_angle:
+        if self.rotate_angle and not name[:2] == 'vp':
             x = transforms.functional.affine(x, angle=0, translate=(0.1 * w, 0.1 * h), scale=1, shear=(0, 0))
             x = transforms.functional.rotate(x, self.rotate_angle)
 
