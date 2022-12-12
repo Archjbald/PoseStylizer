@@ -51,6 +51,7 @@ class TransferCycleWGANModel(TransferCycleHPEModel, BaseModel):
     def backward_D(self, backward=True, gp=True):
         loss_D = 0.
         pairs = [(self.input_P2, self.fake_P2), (self.input_P1, self.fake_P1)]
+
         for pair in pairs:
             real = pair[0]
             fake = self.fake_pool.query(pair[1].data)

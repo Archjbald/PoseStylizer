@@ -228,7 +228,11 @@ class TransferModel(BaseModel):
         pred_fake = netD(fake.detach())
         loss_D_fake = self.criterionGAN(pred_fake, False) * self.opt.lambda_GAN
         # Combined loss
-        loss_D = (loss_D_real + loss_D_fake) * 0.5
+        loss_D = (loss_D_real + loss_D_fake)
+        if self.opt.use_wgan:
+            loss_D += networks.WassersteinLoss.gradient_penalty(netD, real.data, fake.data)
+        else:
+            loss_D *= 0.5
         # backward
         if backward:
             loss_D.backward()
@@ -271,7 +275,6 @@ class TransferModel(BaseModel):
                 self.optimizer_D_PB.zero_grad()
                 self.backward_D_PB(backward=backward)
                 self.optimizer_D_PB.step()
-
 
     def get_current_errors(self):
         ret_errors = OrderedDict([('pair_L1loss', self.pair_L1loss)])
