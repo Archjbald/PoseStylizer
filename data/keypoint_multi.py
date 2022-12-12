@@ -31,7 +31,7 @@ class KeyDatasetMulti(BaseDataset):
             ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize, rotate_angle=42)),
             ('./dataset/draiver_data/', './dataset/draiver_data/draiver-pairs-{}.csv',
-             DraiverTransform(equalize=opt.equalize, color_swap=opt.color_swap if opt.phase == 'train' else False))
+             DraiverTransform(equalize=opt.equalize, rotate_angle=42, color_swap=opt.color_swap if opt.phase == 'train' else False))
         ]):
             opt_set = Namespace(**vars(opt))
             opt_set.dataroot = root
@@ -96,7 +96,7 @@ class KeyDatasetMulti(BaseDataset):
 
 
 class DraiverTransform:
-    def __init__(self, equalize=False, color_swap=False, rotate_angle=0, proba=1.):
+    def __init__(self, equalize=False, color_swap=False, rotate_angle=0, proba=0.6):
         self.equalize = equalize
         self.color_swap = color_swap
         self.rotate_angle = rotate_angle
