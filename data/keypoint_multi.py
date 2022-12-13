@@ -26,7 +26,7 @@ class KeyDatasetMulti(BaseDataset):
         phase = opt.phase
         if phase == 'val':
             opt.phase = 'test'
-            opt.ratio_multi = 1 / 5
+            # opt.ratio_multi = 1 / 5
         for is_real, (root, pairLst, custom_transform) in enumerate([
             ('./dataset/synthe_dripe/', './dataset/synthe_dripe/synthe-pairs-{}.csv',
              DraiverTransform(equalize=opt.equalize, rotate_angle=42)),

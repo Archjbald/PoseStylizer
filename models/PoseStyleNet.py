@@ -235,7 +235,8 @@ class TransferModel(BaseModel):
         if self.opt.use_wgan:
             if self.opt.no_lsgan:
                 loss_D = torch.mean(loss_D)
-            loss_D += networks.WassersteinLoss.gradient_penalty(netD, real.data, fake.data)
+            if backward:
+                loss_D += networks.WassersteinLoss.gradient_penalty(netD, real.data, fake.data)
         else:
             loss_D *= 0.5
         # backward
