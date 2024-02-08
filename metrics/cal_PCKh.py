@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import json
 import os
-from tqdm import tqdm
+from tqdm import tqdm  # progress bar
 import torch
 import torchvision.transforms as trans
 
@@ -72,7 +72,12 @@ def get_head_wh(x_coords, y_coords):
         ymax = max(y_cords)
         final_w = xmax - xmin
         final_h = ymax - ymin
+
     return final_w, final_h
+
+
+def get_head_size(x_coords, y_coords):
+    return [round(max(get_head_wh(x_coords, y_coords)) / 0.7), ] * 2
 
 
 def get_pckh_from_dir(results_dir):
@@ -144,15 +149,15 @@ def get_pckh_from_hpe(img_loader, hpe_net, target_annotation, gt_size):
         #            enumerate(tycords)]  # list of numbers
         txcords = json.loads(tValues[2])
 
-        txcords, tycords = resize_keypoints(txcords, tycords, gt_size, list(img.shape[-2:]))
+        txcords_rs, tycords_rs = resize_keypoints(txcords, tycords, gt_size, list(img.shape[-2:]))
 
-        xBox, yBox = get_head_wh(txcords, tycords)
+        xBox, yBox = get_head_size(txcords_rs, tycords_rs)
         if xBox == -1 or yBox == -1:
             continue
 
         head_size = (xBox, yBox)
         nAll = nAll + valid_points(tycords)
-        nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords, tycords, head_size, alpha)
+        nCorrect = nCorrect + how_many_right_seq(pxcords, pycords, txcords_rs, tycords_rs, head_size, alpha)
         nbImg += 1
 
     pckh = nCorrect * 1.0 / nAll

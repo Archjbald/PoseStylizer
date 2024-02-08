@@ -18,6 +18,9 @@ class KeyDataset(BaseDataset):
     def initialize(self, opt, custom_transform=None):
         self.opt = opt
         self.root = opt.dataroot
+
+        if opt.phase == 'val':
+            opt.phase = 'test'
         self.dir_P = os.path.join(opt.dataroot, opt.phase)  # person images
         self.dir_K = os.path.join(opt.dataroot, opt.phase + 'K')  # keypoints
 

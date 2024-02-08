@@ -5,15 +5,29 @@ import glob
 sys.path.append(os.getcwd())
 
 from torch.utils.data import DataLoader
+import numpy as np
 
-from utils import get_fid, get_inception_score, ImageDatasetSplit
+from utils import get_fid, get_inception_score, ImageDatasetSplit, ImageDataset, resize_img
 from metrics.metrics_ssim_market import ssim_score
 from metrics.cal_PCKh import get_pckh_from_hpe
+from metrics.calc_cpbd import get_cpbd
+from metrics.calc_kid import calculate_kid_given_loader
+
+
+def get_metrics_dset(dset_path):
+    images_np = ImageDataset(dset_path, transform=lambda x: np.array(resize_img(x)))
+    images_loader = DataLoader(images_np, shuffle=False)
+    print('Loaded images : ', len(images_loader))
+    cpbd = get_cpbd(images_np)
+    print(f"CPBD: ", cpbd)
+
+    # inception = get_inception_score(images_loader)
+    # print(f"IS : {inception[0]}, std: {inception[1]}")
 
 
 def get_metrics(results_dir, idx_fake):
     from models.hpe.simple_bl import get_pose_net
-    op = get_pose_net()
+    hpe_net = get_pose_net()
 
     img_dir = os.path.join(results_dir, 'images')
 
@@ -36,7 +50,7 @@ def get_metrics(results_dir, idx_fake):
         target_annotation = 'dataset/synthe_dripe/synthe-annotation-test.csv'
         gt_size = (240, 320)
     elif "draiver" in results_dir:
-        target_annotation = 'dataset/draiver/draiver-annotation_test.csv'
+        target_annotation = 'dataset/draiver_data/draiver-annotation_test.csv'
         gt_size = (192, 256)
     elif "fashion" in results_dir:
         target_annotation = 'dataset/fashion_data/fashion-resize-annotation-test.csv'
@@ -47,11 +61,14 @@ def get_metrics(results_dir, idx_fake):
     else:
         raise ValueError('Dataset not implemented')
 
-    print(f'Annotation file : {target_annotation}, {os.path.isfile(target_annotation)}')
+    # Temp
 
-    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation,
-                                   gt_size=gt_size)
-    print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
+    print(f'Annotation file : {target_annotation}, {os.path.isfile(target_annotation)}')
+    kid = calculate_kid_given_loader(generated_images_loader, target_images_loader)
+    print(f'KID: {kid[0]}, std: {kid[1]}')
+
+    return
+
 
     print('\nInput images...')
     IS_input = get_inception_score(target_images_loader)
@@ -76,20 +93,23 @@ def get_metrics(results_dir, idx_fake):
     # PCKs = get_pckh_from_dir(results_dir)
     # print(f'\nPCKh: {PCKs[0] * 100:.2f}% ({PCKs[1]}/{PCKs[2]} )')
 
-    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=op, target_annotation=target_annotation,
+    PCKs_input = get_pckh_from_hpe(img_loader=target_images_loader, hpe_net=hpe_net, target_annotation=target_annotation,
                                    gt_size=gt_size)
     print(f'\nPCKh input: {PCKs_input[0] * 100:.2f}% ({PCKs_input[1]}/{PCKs_input[2]} )')
 
-    PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=op, target_annotation=target_annotation,
+    PCKs_output = get_pckh_from_hpe(img_loader=generated_images_loader, hpe_net=hpe_net, target_annotation=target_annotation,
                                     gt_size=gt_size)
     print(f'\nPCKh output: {PCKs_output[0] * 100:.2f}% ({PCKs_output[1]}/{PCKs_output[2]} )')
+
+    print(f"CPBD input: {get_cpbd(target_images_np)}")
+    print(f"CPBD output: {get_cpbd(generated_images_np)}")
 
     print("\nCompute structured similarity score (SSIM)...")
     structured_score = ssim_score(generated_images_np, target_images_np)
     print("SSIM score %s" % structured_score)
 
     if cycle_images_loader:
-        PCKs_output_2 = get_pckh_from_hpe(img_loader=cycle_images_loader, hpe_net=op,
+        PCKs_output_2 = get_pckh_from_hpe(img_loader=cycle_images_loader, hpe_net=hpe_net,
                                           target_annotation=target_annotation, gt_size=gt_size)
         print(f'\nPCKh_2 output: {PCKs_output_2[0] * 100:.2f}% ({PCKs_output_2[1]}/{PCKs_output_2[2]} )')
 
@@ -113,7 +133,7 @@ def get_last_dir(dpath):
 def get_args():
     idx_fake = 4
 
-    results_dir = './results/market_APS'
+    results_dir = './results/synthe_multi_small'
 
     args = sys.argv[1:].copy()
     if len(args):
@@ -127,4 +147,8 @@ def get_args():
 
 
 if __name__ == '__main__':
-    get_metrics(*get_args())
+    # get_metrics(*get_args())
+    print('Réelles')
+    get_metrics_dset(r"D:\Datasets\Ticam\Train_images\RGB")
+    print('Synthé')
+    get_metrics_dset(r"D:\Datasets\Ticam\Synthetic_images\RGB_wholeImage")

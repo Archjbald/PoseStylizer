@@ -22,6 +22,17 @@ from core import (
 random.seed(123456)
 
 
+def resize_img(image):
+    target_size = 256 * 192
+    # actual_ratio = image.shape[0] / image.shape[1]
+    actual_ratio = image.height / image.width
+    target_width = round((target_size / actual_ratio) ** 0.5)
+    # image = image.resize((round(actual_ratio * target_width), target_width, image.shape[2]))
+    image = image.resize((target_width, round(actual_ratio * target_width)))
+
+    return image
+
+
 class ImageDataset(Dataset):
     """An simple image dataset for calculating inception score and FID."""
 
@@ -85,12 +96,7 @@ class ImageDatasetMulti(Dataset):
         image = Image.open(self.paths[idx])
         image = image.convert('RGB')  # fix ImageNet grayscale images
 
-        target_size = 256 * 192
-        # actual_ratio = image.shape[0] / image.shape[1]
-        actual_ratio = image.height / image.width
-        target_width = round((target_size / actual_ratio) ** 0.5)
-        # image = image.resize((round(actual_ratio * target_width), target_width, image.shape[2]))
-        image = image.resize((target_width, round(actual_ratio * target_width)))
+        image = resize_img(image)
 
         image = np.array(image)
 
@@ -419,6 +425,6 @@ def resize_keypoints(kpsx, kpsy, old_size, new_size, missing_value=-1):
     new_kps = []
     for i, kps in enumerate((kpsy, kpsx)):
         factor = new_size[i] / old_size[i]
-        new_kps.append([int(kp * factor) if kp >= 0 else missing_value for kp in kps])
+        new_kps.append([round(kp * factor) if kp >= 0 else missing_value for kp in kps])
 
     return new_kps[::-1]

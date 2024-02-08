@@ -23,6 +23,11 @@ colors = {
     'loss_NCE_both': 'tab:red',
     'loss_NCE_Y': 'tab:pink',
 }
+
+equiv = {
+    'A': 'origin_L1',
+    'B': 'pair'
+}
 colors = {}
 
 
@@ -60,22 +65,26 @@ def print_loss(log_path, mode='train', weights={}):
         losses[epoch] = [sum([it[l] for it in losses[epoch]]) / len(losses[epoch]) for l in range(len(lbls))]
 
     fig, ax = plt.subplots()
+    # ax.set_ylim([0, 7])
 
     losses = {lbl: [losses[e][i] for e in epochs] for i, lbl in enumerate(lbls)}
     ban_list = ['D_BP', 'IS', 'IS std']
     len_lbl = len([lbl for lbl in lbls if lbl not in ban_list])
-    losses['total'] = [sum([v[e] for k, v in losses.items() if k not in ban_list]) / len_lbl for e in range(len(epochs))]
+    losses['total'] = [sum([v[e] for k, v in losses.items() if k not in ban_list]) / len_lbl for e in
+                       range(len(epochs))]
     lbls.append('total')
 
     for lbl in lbls:
         # if lbl in ['pair_L1loss', 'origin_L1', 'perceptual']:
-        # if lbl in ['pair_L1loss', 'D_PP', 'D_PB', 'pair_GANloss']:
-        if lbl in ['loss_NCE_both', 'D', 'D_PP', 'D_PB', 'adv'] and False:
+        if False and lbl in ['pair_L1loss', 'D_PP', 'D_PB', 'IS_val', 'IS_std']:  # 'pair_GANloss'
+            # if lbl in ['loss_NCE_both', 'D', 'D_PP', 'D_PB', 'adv', ]:
             # if 'IS' not in lbl:
+            # if lbl not in "total":
             continue
 
         w = weights.setdefault(lbl, 1)
-        ax.plot(epochs, losses[lbl], label=f"{lbl} ({w})",
+        # ax.plot(epochs, losses[lbl], label=f"{lbl} ({w})",
+        ax.plot(epochs, losses[lbl], label=f"{lbl}",
                 color=colors.setdefault(lbl, None))
 
     ax.legend()
@@ -101,12 +110,12 @@ def get_weights(options):
     return lambdas
 
 
-FOLD = r"C:\Users\Romain Guesdon\Desktop\fashion_UCCPT_adam"
-LOG_PATH = f"{FOLD}/loss_log.txt"
-OPT_PATH = f"{FOLD}/options.txt"
+FOLDER = r"D:\Networks\PoseStylizer\logs\synthe\synthe_mark_3_bis"
+LOG_PATH = f"{FOLDER}/loss_log.txt"
+OPT_PATH = f"{FOLDER}/options.txt"
 with open(OPT_PATH) as f:
     options = f.read()
     weights = get_weights(options)
 
-print_loss(LOG_PATH, mode='train', weights=weights)
+print_loss(LOG_PATH, mode='train', weights={})
 print(weights)
